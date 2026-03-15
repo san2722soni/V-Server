@@ -1,0 +1,96 @@
+.
+├── README.md
+├── constants
+│   ├── config.js
+│   └── index.js
+├── db
+│   ├── elastic.js
+│   ├── mongo.js
+│   └── redis.js
+├── docu
+│   └── documentation-v-server.pdf
+├── index.js
+├── model
+│   ├── Build.js
+│   ├── Building.js
+│   ├── Character.js
+│   ├── CustomGame.js
+│   ├── Developer.js
+│   ├── DeveloperOtp.js
+│   ├── DeviceData.js
+│   ├── FeatureFlag.js
+│   ├── Game.js
+│   ├── Inventory.js
+│   ├── Lobby.js
+│   ├── Shield.js
+│   ├── User.js
+│   ├── UserOtp.js
+│   ├── UserProfile.js
+│   ├── modelWrapper.js
+│   └── schema
+│       └── Date.js
+├── package-lock.json
+├── package.json
+├── route
+│   ├── auth
+│   │   ├── developer.js
+│   │   ├── index.js
+│   │   ├── refresh.js
+│   │   └── user.js
+│   ├── dashboard
+│   │   ├── build.js
+│   │   ├── developer.js
+│   │   ├── featureFlag.js
+│   │   ├── index.js
+│   │   └── mongoQuery.js
+│   ├── entity
+│   │   ├── character.js
+│   │   └── index.js
+│   ├── game
+│   │   ├── chooseCharacter.js
+│   │   ├── gameData.js
+│   │   ├── gameOver.js
+│   │   ├── index.js
+│   │   ├── info.js
+│   │   ├── killPlayer.js
+│   │   ├── lobby.js
+│   │   └── matchmaking.js
+│   ├── index.js
+│   └── middleware.js
+├── scheduler
+│   ├── index.js
+│   └── lobby.js
+├── service
+│   ├── auth
+│   │   ├── developer.js
+│   │   ├── index.js
+│   │   ├── refreshToken.js
+│   │   ├── user.js
+│   │   └── utils.js
+│   ├── comms
+│   │   └── index.js
+│   ├── dashboard
+│   │   ├── build.js
+│   │   ├── developer.js
+│   │   ├── featureFlag.js
+│   │   └── mongoService.js
+│   ├── entity
+│   │   └── character..js
+│   ├── game
+│   │   ├── chooseCharacter.js
+│   │   ├── gameData.js
+│   │   ├── gameOver.js
+│   │   ├── info.js
+│   │   ├── killPlayer.js
+│   │   ├── lobby.js
+│   │   └── matchmaking.js
+│   └── log
+│       ├── elasticsearch.js
+│       ├── index.js
+│       └── schema.js
+├── structure.txt
+└── util
+    ├── asyncStorage.js
+    └── index.js
+
+19 directories, 74 files
