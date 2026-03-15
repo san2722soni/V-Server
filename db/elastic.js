@@ -1,9 +1,9 @@
 import { Client } from '@elastic/elasticsearch';
 import config from '../constants/config.js';
 const { ES_CA, ES_PASSWORD, ES_URL, ES_USERNAME } = config;
-import { createIndexes } from "../service/log/elasticsearch.js";
+import { enableESLogging } from '../constants/index.js'
 
-const client = new Client({
+const client = enableESLogging ? new Client({
     node: ES_URL,
     auth: {
         username: ES_USERNAME,
@@ -13,12 +13,12 @@ const client = new Client({
         ca: ES_CA,
         rejectUnauthorized: false
     }
-});
+}): {};
 
 const connect = async () => {
+    if (!enableESLogging) return;
     try {
         await client.ping();
-        await createIndexes();
     } catch (error) {
         console.error('Elasticsearch connection failed: ', error);
         throw error;

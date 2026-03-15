@@ -3,7 +3,7 @@ import Character from "../../model/Character.js";
 import UserProfile from "../../model/UserProfile.js";
 import LogModule from "../../service/log/index.js";
 
-async function choose({ id, userData }) {
+async function choose({ id, name, userData }) {
   try {
     LogModule.log({
       key1: "choose_character",
@@ -39,8 +39,12 @@ async function choose({ id, userData }) {
         };
       } else {
         // update user with new character
-        userProfile.characterId = id;
-        await userProfile.save();
+        const updateData = { characterId: id };
+        if (name) updateData.name = name;
+        userProfile = await UserProfile.findOneAndUpdate(
+          { userId: userData.userId },
+          updateData
+        );
         LogModule.log({
           key1: "choose_character",
           key2: "updated",
@@ -57,6 +61,7 @@ async function choose({ id, userData }) {
       userProfile = await UserProfile.create({
         userId: userData.userId,
         characterId: id,
+        name: name || character.name,
       });
 
       LogModule.log({

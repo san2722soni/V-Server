@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../../model/User.js";
 import Developer from "../../model/Developer.js";
 import LogModule from "../../service/log/index.js";
+import WhitelistedUserService from "../dashboard/whitelistedUser.js";
 import {
   JWT_SECRET_KEY,
   ACCESS_TOKEN_EXPIRE_TIME_IN_SECS,
@@ -135,6 +136,14 @@ const refreshAccessToken = async (data) => {
     const { account, isDeveloper } = await getAccount(decodedToken);
 
     if (!account) throw new Error("Account not found");
+
+    // In production, check whitelist for User accounts (not Developers)
+    if (process.env.NODE_ENV === "production" && !isDeveloper) {
+      const allowed = await WhitelistedUserService.isWhitelisted(account.email);
+      if (!allowed) {
+        throw new Error("Access denied. This email is no longer whitelisted.");
+      }
+    }
 
     // Validate refresh token
     validateRefreshToken(account, refreshToken);

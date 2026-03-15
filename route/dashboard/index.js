@@ -2,9 +2,10 @@ import developer from "./developer.js";
 import Developer from "../../service/dashboard/developer.js";
 import { requireAdmin, wrapper, requireDeveloper } from "../middleware.js";
 import featureFlag from "./featureFlag.js";
-import mongoQuery from "./mongoQuery.js";
 import builds from "./build.js";
 import clientBuilds from "./clientBuild.js";
+import whitelistedUser from "./whitelistedUser.js";
+import excalidrawBoard from "./excalidrawBoard.js";
 
 export default async function dashboardRoutes(fastify) {
     fastify.register(developer, { prefix: '/developer'});
@@ -24,6 +25,12 @@ export default async function dashboardRoutes(fastify) {
         prefix: '/clientBuild',
     });
 
-    
-    fastify.register(mongoQuery);
+    fastify.register(whitelistedUser, {
+        prefix: '/whitelistedUser',
+    });
+
+    fastify.register(excalidrawBoard, {
+        prefix: '/excalidraw',
+    });
+
 }

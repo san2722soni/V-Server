@@ -480,8 +480,7 @@ const setActiveBuild = async (data) => {
     // Then, set the selected build to active
     const result = await Build.findByIdAndUpdate(
       buildId,
-      { $set: { isActive: true } },
-      { new: true }
+      { $set: { isActive: true } }
     );
 
     if (!result) {

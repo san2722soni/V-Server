@@ -29,6 +29,11 @@ export default async function lobbyRoutes(fastify) {
     { preHandler: requireUser },
     wrapper(Lobby.getLobbyStatus)
   );
+  fastify.post(
+    "/getActiveGame",
+    { preHandler: requireUser },
+    wrapper(Lobby.getActiveGame)
+  );
 
   // mockLobbyData - no requireUser
   fastify.post("/mockLobbyData", wrapper(Lobby.mockLobbyData));

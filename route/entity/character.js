@@ -18,4 +18,8 @@ export default async function characterRoutes(fastify) {
         '/',
         wrapper(Character.deleteCharacter)
     );
+    fastify.get(
+        '/allActive',
+        wrapper(() => Character.getAllCharacters({ isActive: true }))
+    );
 }

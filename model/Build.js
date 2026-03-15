@@ -16,6 +16,23 @@ const buildSchema = new mongoose.Schema({
     isDeleted: {
         type: Boolean,
         default: false
+    },
+    buildCompleted: {
+        type: Boolean,
+        default: false
+    },
+    buildFailed: {
+        type: Boolean,
+        default: false
+    },
+    completedAt: {
+        type: Date
+    },
+    failedAt: {
+        type: Date
+    },
+    errorMessage: {
+        type: String
     }
 }, {timestamps: true});
 

@@ -2927,7 +2927,7 @@ module.exports = {
       200: {
         description: "All characters",
         schema: { type: "array", items: { type: "object" } },
-        examples: [[{ _id: "c1", health: 100, tribe: "Human" }]],
+        examples: [[{ _id: "c1", health: 100 }]],
       },
       500: {
         description: "No characters found",
@@ -3006,9 +3006,6 @@ module.exports = {
       health: { type: "number", required: true },
       maxHealth: { type: "number", required: true },
       isActive: { type: "boolean", required: true },
-      isStun: { type: "boolean", required: true },
-      tribe: { type: "string", required: true },
-      availableRole: { type: "string", required: true },
       moveSpeed: { type: "number", required: true },
       attackType: { type: "string", required: true },
       attackRange: { type: "number", required: true },

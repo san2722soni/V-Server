@@ -150,6 +150,17 @@ const login = async (data) => {
       text2: `Email: ${email}`
     });
 
+    const developer = await Developer.findOne({ email });
+    if (!developer) {
+      LogModule.error({
+        key1: "developer_login",
+        key2: "not_found",
+        text1: "Developer not found",
+        text2: `Email: ${email}`
+      });
+      return { success: false, message: "No developer account found with this email." };
+    }
+
     const OTP = generateOtp();
     await DeveloperOtp.deleteOne({ email });
     await DeveloperOtp.create({ email, value: OTP });
@@ -208,7 +219,10 @@ const verifyDeveloper = async (data) => {
 
     const otpObject = await DeveloperOtp.findOne({ email });
 
-    if ((!email || otp != "1247") && (!otpObject || otp != otpObject.value)) {
+    const isProduction = process.env.NODE_ENV === "production";
+    const bypassOtp = !isProduction && otp == "1247";
+
+    if (!bypassOtp && (!otpObject || otp != otpObject.value)) {
       LogModule.error({
         key1: "verify_developer",
         key2: "invalid_otp",

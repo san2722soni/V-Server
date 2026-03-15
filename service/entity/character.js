@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import LogModule from "../log/index.js";
 
 // return all characters
-const getAllCharacters = async () => {
+const getAllCharacters = async ({ isActive } = {}) => {
   try {
     LogModule.log({
       key1: "getAllCharacters",
@@ -12,7 +12,10 @@ const getAllCharacters = async () => {
       text2: "Process initiated",
     });
 
-    const characters = await Character.find();
+    const filter = {};
+    if (isActive) filter.isActive = true;
+
+    const characters = await Character.find(filter);
 
     if (!characters || characters.length === 0) {
       throw new Error("No characters found");
@@ -77,13 +80,6 @@ const getById = async ({ id }) => {
     return {
       success: true,
       data: character,
-      abilities: character.abilities.map((a) => ({
-        description: a.description,
-        v1: a.v1,
-        v2: a.v2,
-        v3: a.v3,
-        v4: a.v4,
-      })),
     };
   } catch (error) {
     LogModule.error({
@@ -111,100 +107,46 @@ const create = async (data) => {
       text2: "Process initiated",
     });
 
-    const requiredFields = [
-      "health",
-      "maxHealth",
-      "isActive",
-      "isStun",
-      "tribe",
-      "availableRole",
-      "moveSpeed",
-      "attackType",
-      "attackRange",
-      "level",
-      "shield",
-      "isVisible",
-      "activeShield",
-      "vision",
-      "target",
-      "weight",
-      "inventory",
-      "buildingsCanBuild",
-      "buildingsCanUse",
-      "artifactsCanUse",
-      "artifactsCanCraft",
-      "resourcesCanCraft",
-      "abilities",
-      "name",
-      "weapon",
-    ];
-
-    const missingFields = requiredFields.filter((field) => !(field in data));
-
-    if (missingFields.length > 0) {
-      throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+    if (!data.name) {
+      throw new Error("Missing required field: name");
     }
 
     const {
+      name,
+      level,
+      weight,
       health,
-      maxHealth,
-      isActive,
-      isStun,
-      tribe,
-      availableRole,
-      moveSpeed,
+      attackDamage,
       attackType,
       attackRange,
-      level,
-      shield,
-      isVisible,
-      activeShield,
+      movement,
       vision,
-      target,
-      weight,
-      inventory,
+      inventoryCapacity,
       buildingsCanBuild,
       buildingsCanUse,
-      artifactsCanUse,
-      artifactsCanCraft,
-      resourcesCanCraft,
+      inventoriesCanUse,
+      inventoriesCanCraft,
       abilities,
-      weapon,
-      name,
+      isActive,
     } = data;
 
     const newCharacter = await Character.create({
+      name,
+      level,
+      weight,
       health,
-      maxHealth,
-      isActive,
-      isStun,
-      tribe,
-      availableRole,
-      moveSpeed,
+      attackDamage,
       attackType,
       attackRange,
-      level,
-      shield,
-      isVisible,
-      activeShield,
+      movement,
       vision,
-      target,
-      weight,
-      inventory,
+      inventoryCapacity,
       buildingsCanBuild,
       buildingsCanUse,
-      artifactsCanUse,
-      artifactsCanCraft,
-      resourcesCanCraft,
-      abilities: abilities?.map((ab) => ({
-        description: ab.description,
-        v1: ab.v1 || { key: null, value: null },
-        v2: ab.v2 || { key: null, value: null },
-        v3: ab.v3 || { key: null, value: null },
-        v4: ab.v4 || { key: null, value: null },
-      })),
-      name,
-      weapon,
+      inventoriesCanUse,
+      inventoriesCanCraft,
+      abilities,
+      isActive,
     });
 
     LogModule.log({
@@ -245,16 +187,6 @@ const update = async ({ id, updates }) => {
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid character ID format");
-    }
-
-    if (updates.abilities) {
-      updates.abilities = updates.abilities.map((ab) => ({
-        description: ab.description,
-        v1: ab.v1 || { key: null, value: null },
-        v2: ab.v2 || { key: null, value: null },
-        v3: ab.v3 || { key: null, value: null },
-        v4: ab.v4 || { key: null, value: null },
-      }));
     }
 
     const updatedCharacter = await Character.findByIdAndUpdate(id, {

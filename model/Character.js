@@ -1,117 +1,121 @@
 import mongoose from "mongoose";
-import shieldSchema from "./Shield.js";
-import inventorySchema from "./Inventory.js";
 import modelWrapper from "./modelWrapper.js";
+
+const abilityKeySchema = new mongoose.Schema({
+    value: { type: Number, default: 0 },
+    description: { type: String, default: "" },
+}, { _id: false });
+
+const abilitySchema = new mongoose.Schema({
+    Key1: { type: abilityKeySchema, default: () => ({}) },
+    Key2: { type: abilityKeySchema, default: () => ({}) },
+    Key3: { type: abilityKeySchema, default: () => ({}) },
+    Key4: { type: abilityKeySchema, default: () => ({}) },
+}, { _id: false });
+
+const abilityItemSchema = new mongoose.Schema({
+    abilityName: { type: String, required: true },
+    abilityData: { type: abilitySchema, default: () => ({}) },
+}, { _id: false });
 
 const characterSchema = new mongoose.Schema(
   {
-    health: {
-      type: Number,
-      min: [0, "Health cannot be negative"],
-    },
-    maxHealth: {
-      type: Number,
-    },
-    isActive: {
-      type: Boolean,
-    },
-    isStun: {
-      type: Boolean,
-    },
-    tribe: {
+    name: {
       type: String,
-    },
-    availableRole: {
-      type: [String],
-      enum: ["Chief", "General", "Warden"],
-    },
-    moveSpeed: {
-      type: Number,
-    },
-    attackType: {
-      type: String,
-      enum: ["Ranged", "Melee"],
-    },
-    attackRange: {
-      type: Number,
+      required: true,
     },
     level: {
       type: Number,
-    },
-    shield: {
-      type: [shieldSchema],
-    },
-    isVisible: {
-      type: Boolean,
-    },
-    activeShield: {
-      type: Number,
-    },
-    vision: {
-      type: Number,
-    },
-    target: {
-      type: Number,
+      default: 1,
     },
     weight: {
       type: Number,
+      default: 0,
     },
-    inventory: {
-      type: inventorySchema,
+    health: {
+      type: Number,
+      min: [0, "Health cannot be negative"],
+      default: 100,
+    },
+    maxHealth: {
+      type: Number,
+      min: [0, "Max health cannot be negative"],
+      default: 100,
+    },
+    attackDamage: {
+      type: Number,
+      default: 0,
+    },
+    attackType: {
+      type: String,
+      enum: ["Ranged", "Melee", "Throw"],
+      default: "Melee",
+    },
+    attackRange: {
+      type: Number,
+      default: 0,
+    },
+    movement: {
+      walkSpeed: {
+        type: Number,
+        default: 5,
+      },
+      sprintSpeed: {
+        type: Number,
+        default: 8,
+      },
+      strafeSpeed: {
+        type: Number,
+        default: 4,
+      },
+      acceleration: {
+        type: Number,
+        default: 2,
+      },
+      deceleration: {
+        type: Number,
+        default: 3,
+      },
+      rotationSpeed: {
+        type: Number,
+        default: 180,
+      },
+      jumpHeight: {
+        type: Number,
+        default: 2,
+      },
+    },
+    vision: {
+      type: Number,
+      default: 10,
+    },
+    inventoryCapacity: {
+      type: Number,
+      default: 20,
     },
     buildingsCanBuild: {
       type: [String],
+      default: [],
     },
     buildingsCanUse: {
       type: [String],
-    },
-    artifactsCanUse: {
-      type: [String],
-    },
-    artifactsCanCraft: {
-      type: [String],
-    },
-    resourcesCanCraft: {
-      type: [String],
-    },
-    abilities: {
-      type: [
-        new mongoose.Schema(
-          {
-            description: {
-              type: String,
-              required: true,
-            },
-            v1: {
-              key: { type: String },
-              value: { type: mongoose.Schema.Types.Mixed },
-            },
-            v2: {
-              key: { type: String },
-              value: { type: mongoose.Schema.Types.Mixed },
-            },
-            v3: {
-              key: { type: String },
-              value: { type: mongoose.Schema.Types.Mixed },
-            },
-            v4: {
-              key: { type: String },
-              value: { type: mongoose.Schema.Types.Mixed },
-            },
-          },
-          { _id: false }
-        ),
-      ],
       default: [],
     },
-
-    name: {
-      type: String,
-      default: "Unnamed Hero",
+    inventoriesCanUse: {
+      type: [String],
+      default: [],
     },
-    weapon: {
-      type: String,
-      default: "Salwar Mai Talwar",
+    inventoriesCanCraft: {
+      type: [String],
+      default: [],
+    },
+    abilities: {
+      type: [abilityItemSchema],
+      default: [],
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }

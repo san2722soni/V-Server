@@ -4,6 +4,9 @@ import modelWrapper from "./modelWrapper.js";
 const { ObjectId } = mongoose.Schema.Types;
 
 const userProfileSchema = new mongoose.Schema({
+    name: {
+        type: String,
+    },
     characterId: {
         type: ObjectId,
         ref: "Character",

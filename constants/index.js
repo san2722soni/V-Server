@@ -10,7 +10,6 @@ export const ApiResponseLogBlackList = [
     ''
 ];
 
-export const LOBBY_LIMIT = 2;
 export const MATCH_MAKING_LIMIT = 2;
 
 export const JWT_SECRET_KEY = 'code2025#'
@@ -59,4 +58,4 @@ export const LOG_TYPES = {
     FE_LOG: 'felog',
 };
 // here 
-export const enableESLogging = true;
+export const enableESLogging = false;

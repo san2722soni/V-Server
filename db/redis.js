@@ -5,6 +5,12 @@ const { REDIS_URL } = config;
 
 const client = createClient({
   url: REDIS_URL,
+  socket: {
+    connectTimeout: 10000, // default is short
+    reconnectStrategy: (retries) => {
+      return Math.min(retries * 100, 3000);
+    },
+  },
 });
 
 client.on("error", (err) => {
@@ -17,7 +23,6 @@ export const connect = async () => {
       await client.connect();
     } catch (err) {
       console.error("Failed to connect to Redis: ", err);
-      process.exit(1);
     }
   }
 };

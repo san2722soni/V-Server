@@ -34,6 +34,10 @@ const customGameSchema = new mongoose.Schema(
             enum: ["A", "B"],
             default: "A",
           },
+          isBot: {
+            type: Boolean,
+            default: false,
+          },
         },
       ],
     },

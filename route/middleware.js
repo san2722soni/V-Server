@@ -31,7 +31,7 @@ export const wrapper = (fn) => async (request, reply) => {
     LogModule.log({
       key1: api,
       key2: "apiResponse",
-      metric: { duration: Date.now() - startTime },
+      metric: Date.now() - startTime,
     });
 
     return reply.send(response);
@@ -41,7 +41,6 @@ export const wrapper = (fn) => async (request, reply) => {
       key2: "apiError",
       error: error.message,
       stack: error.stack,
-      metric: { duration: Date.now() - startTime },
     });
 
     return reply.code(500).send({ message: error.message, error });

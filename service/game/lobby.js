@@ -8,7 +8,6 @@ import redisClient from "../../db/redis.js";
 import Lobby from "../../model/Lobby.js";
 import CustomGame from "../../model/CustomGame.js";
 import { exec } from "child_process";
-import { LOBBY_LIMIT } from "../../constants/index.js";
 import featureFlag from "../../service/dashboard/featureFlag.js";
 import Build from "../../model/Build.js";
 import config from "../../constants/config.js";
@@ -31,6 +30,7 @@ const ec2Client = new EC2Client({
 
 const client = redisClient.client;
 const QUEUE_KEY = "userLobby";
+const LOBBY_TTL = 7200; // 2 hours - safety net TTL for lobby Redis keys
 
 const generateSecret = (length = 16) => {
   return crypto.randomBytes(length).toString("hex").slice(0, length);
@@ -68,6 +68,55 @@ const isUserInActiveGame = async (userId) => {
   } catch (err) {
     console.error("Error checking active game:", err);
     return { inGame: false };
+  }
+};
+
+/* ----------------------------- HELPER: GET CUSTOM GAME WITH USER SECRET ----------------------------- */
+const getCustomGame = async (gameId, userId) => {
+  try {
+    const game = await CustomGame.findById(gameId);
+    if (!game) {
+      return null;
+    }
+
+    // Find the requesting user's player data
+    const userPlayer = game.players.find(
+      (p) => String(p.userId) === String(userId)
+    );
+
+    // Filter out secrets from all players
+    const filteredPlayers = game.players.map((player) => {
+      const { secret, ...playerWithoutSecret } = player.toObject
+        ? player.toObject()
+        : player;
+      return playerWithoutSecret;
+    });
+
+    // Create the response object
+    const gameData = {
+      _id: game._id,
+      saltKey: game.saltKey,
+      createdByLobby: game.createdByLobby,
+      creatorId: game.creatorId,
+      players: filteredPlayers,
+      teams: game.teams,
+      totalPlayers: game.totalPlayers,
+      teamTrees: game.teamTrees,
+      serverIP: game.serverIP,
+      secretKey: userPlayer?.secret || null, // Add secret only for the requesting user
+    };
+
+    return gameData;
+  } catch (err) {
+    LogModule.error({
+      key1: "getCustomGame",
+      key2: "failed",
+      text1: "Failed to get custom game",
+      text2: `Game ID: ${gameId}, User ID: ${userId}`,
+      error: err.message,
+      stack: err.stack,
+    });
+    throw err;
   }
 };
 
@@ -163,7 +212,8 @@ const createLobby = async ({ userData, lobbyName }) => {
     };
 
     await client.hSet(lobbyKey, lobbyData);
-    await client.set(`${QUEUE_KEY}:${userId}`, lobbyId);
+    await client.expire(lobbyKey, LOBBY_TTL);
+    await client.set(`${QUEUE_KEY}:${userId}`, lobbyId, { EX: LOBBY_TTL });
 
     LogModule.log({
       key1: "createLobby",
@@ -280,7 +330,8 @@ const joinLobby = async ({ userData, lobbyId }) => {
     });
 
     await client.hSet(lobbyKey, "members", JSON.stringify(members));
-    await client.set(`${QUEUE_KEY}:${userId}`, lobbyId);
+    await client.expire(lobbyKey, LOBBY_TTL);
+    await client.set(`${QUEUE_KEY}:${userId}`, lobbyId, { EX: LOBBY_TTL });
 
     LogModule.log({
       key1: "joinLobby",
@@ -313,10 +364,10 @@ const joinLobby = async ({ userData, lobbyId }) => {
 };
 
 // Get Character
-const getCharacter = async (userId) => {
-  const result = await UserProfile.findAndSelect({ userId }, "characterId");
-  // console.log("");
-  return result?.[0]?.characterId || null;
+const getCharacterAndName = async (userId) => {
+  const result = await UserProfile.findAndSelect({ userId }, "characterId name");
+  const profile = result?.[0];
+  return { characterId: profile?.characterId || null, name: profile?.name || null };
 };
 
 /* ---------------------- MOVE LOBBY TO MONGO + CREATE GAME ---------------------- */
@@ -341,22 +392,48 @@ async function moveLobbyToMongoAndCreateGame(lobbyId, lobbyData) {
       });
     }
 
+    // Fix use bulk calls
     const players = await Promise.all(
-      members.map(async (m, i) => ({
-        userId: m.userId,
-        secret: generateSecret(16),
-        characterId: await getCharacter(m.userId), // <-- FIX
-        clientId: i + 1,
-        team: "A",
-      }))
+      members.map(async (m, i) => {
+        const { characterId, name } = await getCharacterAndName(m.userId);
+        return {
+          userId: m.userId,
+          name,
+          secret: generateSecret(16),
+          characterId,
+          clientId: i + 1,
+          team: "A",
+        };
+      })
     );
 
+    // Add filler bots if feature flag is enabled
+    const shouldSpawnBots = await featureFlag.getFeatureFlag("spawn_filler_bots");
+    if (shouldSpawnBots && players.length < 32) {
+      const activeCharacters = await Character.find({ isActive: true });
+      if (activeCharacters.length > 0) {
+        const botsNeeded = 32 - players.length;
+        for (let i = 0; i < botsNeeded; i++) {
+          const randomChar = activeCharacters[Math.floor(Math.random() * activeCharacters.length)];
+          players.push({
+            userId: "user_id",
+            name: `Bot_${i + 1}`,
+            secret: "secret",
+            characterId: randomChar._id.toString(),
+            clientId: players.length + 1,
+            team: "A",
+            isBot: true,
+          });
+        }
+      }
+    }
+
     const newGame = await CustomGame.create({
-      saltKey: generateSecret(16),
+      saltKey: generateSecret(32),
       createdByLobby: lobbyId,
       creatorId,
       players,
-      totalPlayers: members.length,
+      totalPlayers: players.length,
     });
 
     // divide playerss
@@ -409,6 +486,18 @@ const startMatch = async ({ userData, lobbyId }) => {
   if (!userId || !lobbyId) {
     return { status: 400, message: "User ID and Lobby ID required" };
   }
+
+  // Check if game start is allowed
+    const allowGameStart = await featureFlag.getFeatureFlag("allow_prod_game_start");
+    if (process.env.NODE_ENV === "production" && !allowGameStart) {
+      LogModule.error({
+        key1: "startMatch",
+        key2: "game_start_disabled",
+        text1: "Game start is disabled by feature flag",
+        text2: `User ID: ${userId}, Lobby ID: ${lobbyId}`,
+      });
+      throw Error("Game start is currently disabled");
+    }
 
   try {
     LogModule.log({
@@ -570,8 +659,8 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
     // FIRST: Check MongoDB if game already started (more reliable)
     const mongoLobby = await Lobby.findOne({ lobbyId, inGame: true });
     if (mongoLobby) {
-      // Game started - find the game data
-      const currentGame = await CustomGame.findById(mongoLobby.gameId);
+      // Game started - find the game data using helper function
+      const currentGame = await getCustomGame(mongoLobby.gameId, userId);
       if (currentGame) {
         const isPlayer = currentGame.players.some(
           (p) => String(p.userId) === String(userId)
@@ -602,6 +691,7 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
             saltKey: currentGame.saltKey,
             serverIP: currentGame.serverIP,
             players: currentGame.players,
+            secretKey: currentGame.secretKey,
             teams: currentGame.teams,
             totalPlayers: currentGame.totalPlayers,
             playerTeam: currentGame.players.find(
@@ -679,6 +769,10 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
         return { status: 403, message: "You are not part of this lobby" };
       }
 
+      // Refresh TTLs on activity
+      await client.expire(lobbyKey, LOBBY_TTL);
+      await client.expire(`${QUEUE_KEY}:${userId}`, LOBBY_TTL);
+
       LogModule.log({
         key1: "getLobbyStatus",
         key2: "lobby_found",
@@ -686,13 +780,20 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
         text2: `Lobby ID: ${lobbyId}, Members: ${members.length}`,
       });
 
+      const enrichedMembers = await Promise.all(
+        members.map(async (m) => {
+          const { characterId, name } = await getCharacterAndName(m.userId);
+          return { ...m, characterId, name };
+        })
+      );
+
       return {
         status: 200,
         message: "Lobby found",
         data: {
           lobbyId,
           lobbyName: lobbyData.lobbyName,
-          members,
+          members: enrichedMembers,
           leaderId: lobbyData.leaderId,
           isLeader,
           inLobby: true,
@@ -915,7 +1016,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
 
     const command = new RunInstancesCommand({
       ImageId: "ami-02b8269d5e85954ef",
-      InstanceType: "t2.nano",
+      InstanceType: "c6a.xlarge",
       KeyName: "project-v-keys",
       IamInstanceProfile: {
         Arn: "arn:aws:iam::245794247290:instance-profile/ec2-admin-access",
@@ -943,9 +1044,9 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
           Groups: ["sg-07819d8d77bc1f98f"],
         },
       ],
-      CreditSpecification: {
-        CpuCredits: "standard",
-      },
+      // CreditSpecification: {
+      //   CpuCredits: "standard",
+      // },
       TagSpecifications: [
         {
           ResourceType: "instance",
@@ -978,7 +1079,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
     LogModule.log({
       key1: "createServer",
       key2: "success",
-      text1: "EC2 server creation initiated",
+      text1: userData,
       text2: `Game ID: ${gameId}, Instance IDs: ${launchedInstances.join(
         ", "
       )}`,
@@ -1217,36 +1318,46 @@ export const mockLobbyData = async (data) => {
   }
 };
 
-// Fisher - Yates Algorithm
-function dividePlayersIntoTeams(players) {
-  const shuffledPlayers = [...players];
-
-  for (let i = shuffledPlayers.length - 1; i > 0; i--) {
+// Fisher - Yates Shuffle
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffledPlayers[i], shuffledPlayers[j]] = [
-      shuffledPlayers[j],
-      shuffledPlayers[i],
-    ];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
+
+function dividePlayersIntoTeams(players) {
+  // Separate real players and bots, shuffle each group independently
+  const realPlayers = players.filter((p) => !p.isBot);
+  const botPlayers = players.filter((p) => p.isBot);
+  shuffle(realPlayers);
+  shuffle(botPlayers);
 
   const teamA = [];
   const teamB = [];
 
-  shuffledPlayers.forEach((player, index) => {
+  // Distribute real players equally first (alternating A/B)
+  const assignToTeam = (player) => {
     const teamPlayer = {
       userId: player.userId,
       clientId: player.clientId,
       characterId: player.characterId,
     };
-
-    if (index % 2 === 0) {
+    if (teamA.length <= teamB.length) {
       teamA.push(teamPlayer);
       player.team = "A";
     } else {
       teamB.push(teamPlayer);
       player.team = "B";
     }
-  });
+  };
+
+  realPlayers.forEach(assignToTeam);
+  // Then distribute bots equally
+  botPlayers.forEach(assignToTeam);
+
+  const shuffledPlayers = [...realPlayers, ...botPlayers];
 
   const teamATree = buildTeamTree(teamA);
   const teamBTree = buildTeamTree(teamB);
@@ -1402,6 +1513,96 @@ const getServerLobbyStatus = async ({ lobbyId }) => {
   }
 };
 
+/* ----------------------------- GET ACTIVE GAME ----------------------------- */
+const getActiveGame = async ({ userData }) => {
+  const userId = userData?.userId;
+  if (!userId) {
+    return { status: 400, message: "User ID required" };
+  }
+
+  try {
+    // 1. Check if user is in an active game (Redis currentGame:*)
+    const activeGameCheck = await isUserInActiveGame(userId);
+    if (activeGameCheck.inGame) {
+      const gameRaw = await client.get(`currentGame:${activeGameCheck.gameId}`);
+      const gameData = gameRaw ? JSON.parse(gameRaw) : null;
+      const player = gameData?.players?.find((p) => String(p.userId) === String(userId));
+
+      return {
+        status: 200,
+        data: {
+          state: "in_game",
+          gameId: activeGameCheck.gameId,
+          lobbyId: activeGameCheck.lobbyId,
+          serverIP: gameData?.serverIP || null,
+          clientId: player?.clientId ?? null,
+          saltKey: gameData?.saltKey || null,
+          secretKey: player?.secret || null,
+        },
+      };
+    }
+
+    // 2. Check if user is in a lobby
+    const lobbyId = await client.get(`${QUEUE_KEY}:${userId}`);
+    if (lobbyId) {
+      const lobbyKey = `lobby:${lobbyId}`;
+      const lobbyData = await client.hGetAll(lobbyKey);
+
+      if (lobbyData && lobbyData.lobbyId) {
+        // Check MongoDB in case match started but serverStarted hasn't fired yet
+        const mongoLobby = await Lobby.findOne({ lobbyId, inGame: true });
+        if (mongoLobby) {
+          const game = await CustomGame.findById(mongoLobby.gameId);
+          const player = game?.players?.find((p) => String(p.userId) === String(userId));
+          return {
+            status: 200,
+            data: {
+              state: "in_game",
+              gameId: mongoLobby.gameId.toString(),
+              lobbyId,
+              serverIP: game?.serverIP || null,
+              clientId: player?.clientId ?? null,
+              saltKey: game?.saltKey || null,
+              secretKey: player?.secret || null,
+            },
+          };
+        }
+
+        return {
+          status: 200,
+          data: {
+            state: "in_lobby",
+            lobbyId,
+            lobbyName: lobbyData.lobbyName,
+            leaderId: lobbyData.leaderId,
+          },
+        };
+      } else {
+        // Stale userLobby key - lobby hash is gone, clean up
+        await client.del(`${QUEUE_KEY}:${userId}`);
+      }
+    }
+
+    // 3. Neither in game nor in lobby
+    return {
+      status: 200,
+      data: {
+        state: "idle",
+      },
+    };
+  } catch (err) {
+    LogModule.error({
+      key1: "getActiveGame",
+      key2: "failed",
+      text1: "Getting active game state failed",
+      text2: `User ID: ${userId}`,
+      error: err.message,
+      stack: err.stack,
+    });
+    return { status: 500, message: "Internal server error" };
+  }
+};
+
 export default {
   createLobby,
   joinLobby,
@@ -1411,4 +1612,5 @@ export default {
   serverStarted,
   mockLobbyData,
   getServerLobbyStatus,
+  getActiveGame,
 };

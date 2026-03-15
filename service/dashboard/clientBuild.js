@@ -10,7 +10,7 @@ const redisClient = redis.client;
 
 import LogModule from "../../service/log/index.js";
 
-const { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } = config;
+const { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, CLOUDFRONT_URL } = config;
 
 const CLIENT_BUILD_STATUS_KEY = "client_build_status";
 const BUILD_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes timeout
@@ -37,7 +37,7 @@ const getBuildStatusFromRedis = async () => {
         buildId: null,
         startTime: null,
         endTime: null,
-        env: null,
+        platform: null,
       };
     }
 
@@ -47,7 +47,7 @@ const getBuildStatusFromRedis = async () => {
       buildId: data.buildId || null,
       startTime: data.startTime ? parseInt(data.startTime) : null,
       endTime: data.endTime ? parseInt(data.endTime) : null,
-      env: data.env || null,
+      platform: data.platform || null,
     };
   } catch (error) {
     LogModule.error({
@@ -62,7 +62,7 @@ const getBuildStatusFromRedis = async () => {
       buildId: null,
       startTime: null,
       endTime: null,
-      env: null,
+      platform: null,
     };
   }
 };
@@ -79,7 +79,7 @@ const setRedisIdle = async () => {
     "version",
     "buildId",
     "startTime",
-    "env",
+    "platform",
   ]);
 
   // Schedule instance shutdown after 5 minutes
@@ -166,17 +166,17 @@ const createBuild = async (data) => {
       };
     }
 
-    const { message, userData, env } = data;
+    const { message, userData, platform, releaseType = "release", buildFormat } = data;
     const userId = userData?.userId || "";
 
-    if (!env) {
+    if (!platform || !["windows", "android"].includes(platform)) {
       LogModule.error({
         key1: "createClientBuild",
         key2: "validation_failed",
         text1: "Build creation validation failed",
-        text2: "Environment is required",
+        text2: "Valid platform is required (windows or android)",
       });
-      return { success: false, message: "Environment is required" };
+      return { success: false, message: "Valid platform is required (windows or android)" };
     }
 
     if (!message) {
@@ -189,13 +189,19 @@ const createBuild = async (data) => {
       return { success: false, message: "Message is required" };
     }
 
+    if (platform === "android" && buildFormat && !["apk", "aab"].includes(buildFormat)) {
+      return { success: false, message: "Valid build format is required for Android (apk or aab)" };
+    }
+
     const totalBuild = await ClientBuild.countDocuments();
     const version = `v${totalBuild + 1}`;
 
     const newBuild = await ClientBuild.create({
-      version: version,
+      version,
       message,
-      env,
+      platform,
+      releaseType,
+      buildFormat: platform === "android" ? (buildFormat || "apk") : null,
     });
 
     if (!newBuild) {
@@ -217,19 +223,19 @@ const createBuild = async (data) => {
       version: version,
       buildId: newBuild._id.toString(),
       startTime: Date.now().toString(),
-      env: env,
+      platform: platform,
     });
 
     LogModule.log({
       key1: "createClientBuild",
       key2: "starting_instance",
       text1: "Starting EC2 instance",
-      text2: `Version: ${version}, Build ID: ${newBuild._id}, Environment: ${env}`,
+      text2: `Version: ${version}, Build ID: ${newBuild._id}, Platform: ${platform}`,
     });
 
     // Start instance and wait for it to be ready
     try {
-      const instanceResult = await ec2Manager.startAndWaitForInstance();
+      await ec2Manager.startAndWaitForInstance();
 
       // Update Redis with instanceReady status
       await redisClient.hSet(CLIENT_BUILD_STATUS_KEY, {
@@ -273,16 +279,22 @@ const createBuild = async (data) => {
       status: "building",
     });
 
+    // Select build script and args based on platform
+    const buildScript = platform === "android" ? "buildAndroid.sh" : "buildWindows.sh";
+    const buildArgs = platform === "android"
+      ? `${version} ${releaseType} ${buildFormat || "apk"}`
+      : `${version} ${releaseType}`;
+
     LogModule.log({
       key1: "createClientBuild",
       key2: "building",
       text1: "Starting build process",
-      text2: `Version: ${version}, Private IP: ${config.UNITY_SERVER_IP}, Environment: ${env}`,
+      text2: `Version: ${version}, Private IP: ${config.UNITY_SERVER_IP}, Platform: ${platform}, Script: ${buildScript}`,
     });
 
     // Making build in AWS server using the private IP from config
     exec(
-      `ssh ubuntu@${config.UNITY_SERVER_IP} "nohup /home/ubuntu/scripts/buildClient.sh ${version} ${env} > /home/ubuntu/build.log 2>&1 &"`,
+      `ssh ubuntu@${config.UNITY_SERVER_IP} "nohup /home/ubuntu/scripts/${buildScript} ${buildArgs} > /home/ubuntu/build.log 2>&1 &"`,
       async (err, stdout, stderr) => {
         if (err) {
           LogModule.error({
@@ -425,7 +437,7 @@ const deleteBuild = async (data) => {
     // Mark DB record as deleted
     await ClientBuild.findByIdAndUpdate(buildId, { isDeleted: true });
 
-    // Deleting build in AWS server
+    // Deleting entire version folder from S3 (includes artifact + logs)
     exec(
       `aws s3 rm s3://project-v-client-builds/${getBuild.version}/ --recursive`,
       (err, stdout, stderr) => {
@@ -490,20 +502,10 @@ const setActiveBuild = async (data) => {
       return { success: false, message: "Build ID is required" };
     }
 
-    // First, set all builds to inactive
-    await ClientBuild.updateMany(
-      { isDeleted: false },
-      { $set: { isActive: false } }
-    );
+    // Look up the target build to get its platform
+    const targetBuild = await ClientBuild.findById(buildId);
 
-    // Then, set the selected build to active
-    const result = await ClientBuild.findByIdAndUpdate(
-      buildId,
-      { $set: { isActive: true } },
-      { new: true }
-    );
-
-    if (!result) {
+    if (!targetBuild) {
       LogModule.error({
         key1: "setActiveClientBuild",
         key2: "not_found",
@@ -511,6 +513,22 @@ const setActiveBuild = async (data) => {
         text2: `Build ID: ${buildId}`,
       });
       return { success: false, message: "No build found with that ID" };
+    }
+
+    // Only deactivate builds of the same platform (allows one active per platform)
+    await ClientBuild.updateMany(
+      { isDeleted: false, platform: targetBuild.platform },
+      { $set: { isActive: false } }
+    );
+
+    // Then, set the selected build to active
+    const result = await ClientBuild.findByIdAndUpdate(
+      buildId,
+      { $set: { isActive: true } }
+    );
+
+    if (!result) {
+      return { success: false, message: "Failed to activate build" };
     }
 
     LogModule.log({
@@ -691,7 +709,7 @@ const getCurrentBuildStatus = async () => {
         buildId: buildStatus.buildId || null,
         elapsedTime: elapsedTime,
         endTime: buildStatus.endTime || null,
-        env: buildStatus.env || null,
+        platform: buildStatus.platform || null,
       },
     };
   } catch (error) {
@@ -847,6 +865,103 @@ const forceResetBuildStatus = async (data) => {
   }
 };
 
+// Get download URL for a build using CloudFront
+const getDownloadUrl = async (data) => {
+  try {
+    const { buildId } = data;
+
+    if (!buildId) {
+      return { success: false, message: "Build ID is required" };
+    }
+
+    const build = await ClientBuild.findById(buildId);
+
+    if (!build) {
+      return { success: false, message: "Build not found" };
+    }
+
+    if (!build.buildCompleted) {
+      return { success: false, message: "Build is not completed yet" };
+    }
+
+    if (!CLOUDFRONT_URL) {
+      return { success: false, message: "CloudFront URL is not configured" };
+    }
+
+    let filename;
+    if (build.platform === "android") {
+      const ext = build.buildFormat || "apk";
+      filename = `Client-Android-${build.version}.${ext}`;
+    } else {
+      filename = `Client-Windows-${build.version}.zip`;
+    }
+
+    const downloadUrl = `${CLOUDFRONT_URL}/${build.version}/${filename}`;
+
+    return {
+      success: true,
+      data: { downloadUrl, filename, version: build.version, platform: build.platform },
+    };
+  } catch (error) {
+    LogModule.error({
+      key1: "getDownloadUrl",
+      key2: "error",
+      text1: "Failed to get download URL",
+      text2: error.message,
+    });
+    return { success: false, message: "Failed to get download URL" };
+  }
+};
+
+// Get download URL for the active build of a given platform (public, no auth)
+const getActiveDownloadUrl = async (data) => {
+  try {
+    const { platform } = data;
+
+    if (!platform || !["windows", "android"].includes(platform)) {
+      return { success: false, message: "Valid platform is required (windows or android)" };
+    }
+
+    const build = await ClientBuild.findOne({
+      platform,
+      isActive: true,
+      isDeleted: false,
+      buildCompleted: true,
+    });
+
+    if (!build) {
+      return { success: false, message: "No active build available for this platform" };
+    }
+
+    if (!CLOUDFRONT_URL) {
+      return { success: false, message: "Download service is not configured" };
+    }
+
+    let filename;
+    if (build.platform === "android") {
+      const ext = build.buildFormat || "apk";
+      filename = `Client-Android-${build.version}.${ext}`;
+    } else {
+      filename = `Client-Windows-${build.version}.zip`;
+    }
+
+    const downloadUrl = `${CLOUDFRONT_URL}/${build.version}/${filename}`;
+
+    return {
+      success: true,
+      data: { downloadUrl, filename, version: build.version, platform: build.platform },
+    };
+  } catch (error) {
+    LogModule.error({
+      key1: "getActiveDownloadUrl",
+      key2: "error",
+      text1: "Failed to get active download URL",
+      text2: error.message,
+    });
+    return { success: false, message: "Failed to get download URL" };
+  }
+};
+
 export default {
   createBuild,
   getBuilds,
@@ -857,4 +972,6 @@ export default {
   getBuildLogs,
   forceResetBuildStatus,
   checkBuildTimeout,
+  getDownloadUrl,
+  getActiveDownloadUrl,
 };

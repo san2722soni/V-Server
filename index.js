@@ -5,9 +5,8 @@ import cors from "@fastify/cors";
 import router from "./route/index.js";
 import redis from "./db/redis.js";
 import elastic from "./db/elastic.js";
+import { createIndexes } from "./service/log/elasticsearch.js";
 import { parseAppConfig } from "./route/middleware.js";
-import initScheduler from "./scheduler/index.js";
-import initLobbyScheduler from "./scheduler/lobby.js";
 import LogModule from "./service/log/index.js";
 import fastifyMultipart from "@fastify/multipart";
 
@@ -19,9 +18,7 @@ const run = async () => {
   await mongodb.connect();
   await redis.connect();
   await elastic.connect();
-
-  initScheduler();
-  initLobbyScheduler();
+  await createIndexes();
 
   app.options.bodyLimit = BODY_LIMIT;
   await app.register(cors, {

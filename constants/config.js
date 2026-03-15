@@ -27,6 +27,7 @@ const config = {
   BREVO_API_KEY: process.env.BREVO_API_KEY,
   UNITY_SERVER_IP: process.env.UNITY_SERVER_IP,
   UNITY_BUILD_SERVER_INSTANCE_ID: process.env.UNITY_BUILD_SERVER_INSTANCE_ID,
+  CLOUDFRONT_URL: process.env.CLOUDFRONT_URL,
 };
 
 export default config;

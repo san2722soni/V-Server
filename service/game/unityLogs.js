@@ -9,8 +9,7 @@ const bulkInsertLogs = async ({ logs, userData }) => {
       key2: "bulk",
       text1: log.message,
       text2: log.context,
-      data: log,
-      metric: { userId: userData?.userId }
+      data: JSON.stringify({ ...log, userId: userData?.userId }),
     });
   }
 

@@ -69,7 +69,7 @@ const findAMatch = async ({ userData }) => {
       const group = players.slice(0, MATCH_MAKING_LIMIT);
 
       const newGame = await Game.create({
-        saltKey: generateSecret(16),
+        saltKey: generateSecret(32),
         players: group.map((playerId, index) => ({
           userId: playerId,
           secret: generateSecret(16),

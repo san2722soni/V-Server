@@ -71,4 +71,17 @@ export default async function clientBuilds(fastify) {
       };
     })
   );
+
+  // Get download URL for a completed build
+  fastify.post(
+    "/getDownloadUrl",
+    { preHandler: [requireAdmin] },
+    wrapper(ClientBuild.getDownloadUrl)
+  );
+
+  // Public: Get active build download URL by platform (no auth required)
+  fastify.get(
+    "/getActiveDownload",
+    wrapper(ClientBuild.getActiveDownloadUrl)
+  );
 }
