@@ -16,3 +16,5 @@ export default async function router(fastify, opts) {
 
   fastify.register(docsRoutes, { prefix: "/docs" });
 }
+
+console.log("temp");
