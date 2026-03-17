@@ -38,6 +38,7 @@ export default async function docsRoutes(fastify) {
 
       // Return the complete structure matching your frontend expectations
       return reply.send({
+        meta: backendData.meta || null,
         services: backendData.services,
         endpoints: backendData.endpoints,
         edges: backendData.edges
@@ -117,6 +118,26 @@ export default async function docsRoutes(fastify) {
     }
   });
 
+  // GET /api/docs/openapi - Returns OpenAPI 3.0 spec
+  fastify.get('/openapi', async (request, reply) => {
+    try {
+      const specPath = path.join(__dirname, '../../lib/openapi-spec.json');
+
+      if (!fs.existsSync(specPath)) {
+        return reply.code(404).send({
+          error: 'OpenAPI spec not generated yet',
+          message: 'Run "npm run parse" to generate the OpenAPI spec'
+        });
+      }
+
+      const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+      return reply.header('Content-Type', 'application/json').send(spec);
+    } catch (error) {
+      fastify.log.error('Error loading OpenAPI spec:', error);
+      return reply.code(500).send({ error: error.message });
+    }
+  });
+
   // GET /api/docs/stats - Get API statistics
   fastify.get('/stats', async (request, reply) => {
     try {
@@ -152,7 +173,10 @@ export default async function docsRoutes(fastify) {
         }
       });
 
-      return reply.send(stats);
+      return reply.send({
+        ...stats,
+        meta: backendData.meta || null
+      });
     } catch (error) {
       return reply.code(500).send({ error: error.message });
     }

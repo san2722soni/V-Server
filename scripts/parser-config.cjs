@@ -234,6 +234,17 @@ module.exports = {
     }
   },
 
+  // OpenAPI 3.0 spec generation
+  openapi: {
+    title: "Project V API",
+    description: "Auto-generated API documentation for Project V Server",
+    version: "1.0.0",
+    servers: [
+      { url: "https://dev.olivs.in/api", description: "Development" },
+      { url: "https://olivs.in/api", description: "Production" },
+    ],
+  },
+
   // Validation
   validation: {
     // Warn about missing service definitions

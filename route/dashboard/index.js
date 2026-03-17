@@ -6,6 +6,7 @@ import builds from "./build.js";
 import clientBuilds from "./clientBuild.js";
 import whitelistedUser from "./whitelistedUser.js";
 import excalidrawBoard from "./excalidrawBoard.js";
+import query from "./query.js";
 
 export default async function dashboardRoutes(fastify) {
     fastify.register(developer, { prefix: '/developer'});
@@ -31,6 +32,10 @@ export default async function dashboardRoutes(fastify) {
 
     fastify.register(excalidrawBoard, {
         prefix: '/excalidraw',
+    });
+
+    fastify.register(query, {
+        prefix: '/query',
     });
 
 }

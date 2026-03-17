@@ -1,0 +1,6584 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Project V API",
+    "description": "Auto-generated API documentation for Project V Server",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://dev.olivs.in/api",
+      "description": "Development"
+    },
+    {
+      "url": "https://olivs.in/api",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth Service",
+      "description": "User & Developer authentication flows"
+    },
+    {
+      "name": "Game Service",
+      "description": "Game management, matchmaking, and lobby systems"
+    },
+    {
+      "name": "Entity Service",
+      "description": "Character and game entity management"
+    },
+    {
+      "name": "Dashboard Service",
+      "description": "Developer dashboard and admin features"
+    }
+  ],
+  "paths": {
+    "/api/auth/developer/login": {
+      "post": {
+        "operationId": "developer-login",
+        "summary": "Login",
+        "description": "POST /auth/developer/login",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Developer email address (must be registered)",
+                    "example": "dev@example.com"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Developer OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "OTP sent successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Validation error",
+                  "message": "Invalid email format"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during OTP generation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Server error",
+                  "message": "Failed to send OTP"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/developer/verifyDeveloper": {
+      "post": {
+        "operationId": "developer-verifyDeveloper",
+        "summary": "Verify Developer",
+        "description": "POST /auth/developer/verifyDeveloper",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Developer email address",
+                    "example": "dev@example.com"
+                  },
+                  "otp": {
+                    "type": "string",
+                    "description": "6-digit OTP code (use \"1247\" for dev bypass)",
+                    "example": "123456"
+                  }
+                },
+                "required": [
+                  "email",
+                  "otp"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Developer verified successfully, tokens returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "refreshToken": {
+                      "type": "string"
+                    },
+                    "accessToken": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "refreshToken": "refresh_token_dev_abc123",
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZlbG9wZXJJZCI6IjY1NGFiYzEyMzQ1NiIsImVtYWlsIjoiZGV2QGV4YW1wbGUuY29tIiwiaXNBZG1pbiI6ZmFsc2UsImlzRGV2ZWxvcGVyIjp0cnVlLCJpYXQiOjE2OTk5OTk5OTksImV4cCI6MTcwMDA4NjM5OX0.signature"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OTP or developer not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Invalid email or otp",
+                  "message": "OTP validation failed"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during verification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Server error",
+                  "message": "Failed to verify developer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh/newToken": {
+      "post": {
+        "operationId": "refresh-refreshAccessToken",
+        "summary": "Refresh Access Token",
+        "description": "POST /auth/refresh/newToken",
+        "tags": [
+          "Auth Service"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accessToken": {
+                    "type": "string",
+                    "description": "Expired or expiring JWT access token",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  },
+                  "refreshToken": {
+                    "type": "string",
+                    "description": "Valid refresh token",
+                    "example": "refresh_token_abc123xyz"
+                  }
+                },
+                "required": [
+                  "accessToken",
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Access token refreshed for user",
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new_token...",
+                  "refreshToken": "refresh_token_abc123xyz"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tokens or missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Missing required parameters: accessToken and refreshToken",
+                  "message": "Both tokens required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Refresh token expired",
+                  "message": "Please login again"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Account not found",
+                  "message": "User or developer account does not exist"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during token refresh",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Server error",
+                  "message": "Failed to refresh token"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/user/login": {
+      "post": {
+        "operationId": "user-login",
+        "summary": "Login",
+        "description": "POST /auth/user/login",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "User email address",
+                    "example": "user@example.com"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "OTP sent successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Validation error",
+                  "message": "Invalid email format"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during OTP generation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Server error",
+                  "message": "Failed to send OTP"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/user/verifyOtp": {
+      "post": {
+        "operationId": "user-verifyOtp",
+        "summary": "Verify Otp",
+        "description": "POST /auth/user/verifyOtp",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "User email address",
+                    "example": "user@example.com"
+                  },
+                  "otp": {
+                    "type": "string",
+                    "description": "6-digit OTP code (use \"1247\" for dev bypass)",
+                    "example": "123456"
+                  }
+                },
+                "required": [
+                  "email",
+                  "otp"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP verified successfully, tokens returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "refreshToken": {
+                      "type": "string"
+                    },
+                    "accessToken": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "refreshToken": "refresh_token_abc123xyz",
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NTRhYmMxMjM0NTYiLCJpc1VzZXIiOnRydWUsImlhdCI6MTY5OTk5OTk5OSwiZXhwIjoxNzAwMDg2Mzk5fQ.signature"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OTP or email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Invalid email or otp",
+                  "message": "OTP validation failed"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during verification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Server error",
+                  "message": "Failed to verify OTP"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/createBuild": {
+      "post": {
+        "operationId": "build-createBuild",
+        "summary": "Create Build",
+        "description": "POST /dashboard/build/createBuild",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "Build description or commit message",
+                    "example": "Added new game features"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "User authentication data",
+                    "example": {
+                      "userId": "654abc123456",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "message",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Build creation initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Build created successfully",
+                  "data": {
+                    "_id": "654def789012",
+                    "version": "v12",
+                    "message": "Added new game features",
+                    "isActive": false,
+                    "isDeleted": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Build server busy or validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Build already in progress"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Build creation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Failed to create build"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/getBuilds": {
+      "get": {
+        "operationId": "build-getBuilds",
+        "summary": "Get Builds",
+        "description": "GET /dashboard/build/getBuilds",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Builds retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Builds retrieved successfully",
+                  "data": [
+                    {
+                      "_id": "654def789012",
+                      "version": "v12",
+                      "message": "Added new game features",
+                      "isActive": true,
+                      "isDeleted": false,
+                      "createdAt": "2024-01-15T10:30:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No builds found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "No builds found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch builds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Database query failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/deleteBuild": {
+      "post": {
+        "operationId": "build-deleteBuild",
+        "summary": "Delete Build",
+        "description": "POST /dashboard/build/deleteBuild",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "buildId": {
+                    "type": "string",
+                    "description": "MongoDB build ID to delete",
+                    "example": "654def789012"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "User authentication data",
+                    "example": {
+                      "userId": "654abc123456",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "buildId",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Build marked as deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Build marked as deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Build ID required or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Build ID is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Build deletion failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Failed to delete build"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/setActive": {
+      "post": {
+        "operationId": "build-setActiveBuild",
+        "summary": "Set Active Build",
+        "description": "POST /dashboard/build/setActive",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "buildId": {
+                    "type": "string",
+                    "description": "MongoDB build ID to set as active",
+                    "example": "654def789012"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "User authentication data",
+                    "example": {
+                      "userId": "654abc123456",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "buildId",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Build set as active successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Build set to active successfully",
+                  "data": {
+                    "_id": "654def789012",
+                    "version": "v12",
+                    "isActive": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Build ID required or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Build ID is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to set active build",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Database update failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/buildStatus": {
+      "post": {
+        "operationId": "build-buildStatus",
+        "summary": "Build Status",
+        "description": "POST /dashboard/build/buildStatus",
+        "tags": [
+          "Dashboard"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/getCurrentStatus": {
+      "get": {
+        "operationId": "build-getCurrentBuildStatus",
+        "summary": "Get Current Build Status",
+        "description": "GET /dashboard/build/getCurrentStatus",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/getLogs": {
+      "post": {
+        "operationId": "build-getBuildLogs",
+        "summary": "Get Build Logs",
+        "description": "POST /dashboard/build/getLogs",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/forceReset": {
+      "post": {
+        "operationId": "build-forceResetBuildStatus",
+        "summary": "Force Reset Build Status",
+        "description": "POST /dashboard/build/forceReset",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/build/checkTimeout": {
+      "post": {
+        "operationId": "build--checkTimeout",
+        "summary": "/check Timeout",
+        "description": "POST /dashboard/build/checkTimeout",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/createBuild": {
+      "post": {
+        "operationId": "clientBuild-createBuild",
+        "summary": "Create Build",
+        "description": "POST /dashboard/clientBuild/createBuild",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/getBuilds": {
+      "get": {
+        "operationId": "clientBuild-getBuilds",
+        "summary": "Get Builds",
+        "description": "GET /dashboard/clientBuild/getBuilds",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/deleteBuild": {
+      "post": {
+        "operationId": "clientBuild-deleteBuild",
+        "summary": "Delete Build",
+        "description": "POST /dashboard/clientBuild/deleteBuild",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/setActive": {
+      "post": {
+        "operationId": "clientBuild-setActiveBuild",
+        "summary": "Set Active Build",
+        "description": "POST /dashboard/clientBuild/setActive",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/buildStatus": {
+      "post": {
+        "operationId": "clientBuild-buildStatus",
+        "summary": "Build Status",
+        "description": "POST /dashboard/clientBuild/buildStatus",
+        "tags": [
+          "Dashboard"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/getCurrentStatus": {
+      "get": {
+        "operationId": "clientBuild-getCurrentBuildStatus",
+        "summary": "Get Current Build Status",
+        "description": "GET /dashboard/clientBuild/getCurrentStatus",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/getLogs": {
+      "post": {
+        "operationId": "clientBuild-getBuildLogs",
+        "summary": "Get Build Logs",
+        "description": "POST /dashboard/clientBuild/getLogs",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/forceReset": {
+      "post": {
+        "operationId": "clientBuild-forceResetBuildStatus",
+        "summary": "Force Reset Build Status",
+        "description": "POST /dashboard/clientBuild/forceReset",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/checkTimeout": {
+      "post": {
+        "operationId": "clientBuild--checkTimeout",
+        "summary": "/check Timeout",
+        "description": "POST /dashboard/clientBuild/checkTimeout",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/getDownloadUrl": {
+      "post": {
+        "operationId": "clientBuild-getDownloadUrl",
+        "summary": "Get Download Url",
+        "description": "POST /dashboard/clientBuild/getDownloadUrl",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/clientBuild/getActiveDownload": {
+      "get": {
+        "operationId": "clientBuild-getActiveDownloadUrl",
+        "summary": "Get Active Download Url",
+        "description": "GET /dashboard/clientBuild/getActiveDownload",
+        "tags": [
+          "Dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/developer/createDeveloper": {
+      "post": {
+        "operationId": "developer-createDeveloper",
+        "summary": "Create Developer",
+        "description": "POST /dashboard/developer/createDeveloper",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Developer email address",
+                    "example": "dev@example.com"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Developer full name",
+                    "example": "John Developer"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Developer role/title",
+                    "example": "Backend Developer"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "description": "Developer gender",
+                    "example": "male"
+                  },
+                  "permission": {
+                    "type": "object",
+                    "description": "Developer permissions object",
+                    "example": {
+                      "feature_flags": true,
+                      "builds": false
+                    }
+                  },
+                  "isAdmin": {
+                    "type": "boolean",
+                    "description": "Whether developer has admin privileges",
+                    "example": false
+                  },
+                  "access": {
+                    "type": "array",
+                    "description": "Array of access strings",
+                    "example": [
+                      "feature_flags",
+                      "builds"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "name",
+                  "role",
+                  "gender",
+                  "permission"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Developer created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Developer created successfully",
+                  "data": {
+                    "_id": "654dev123456",
+                    "email": "dev@example.com",
+                    "isAdmin": false,
+                    "access": [
+                      "feature_flags"
+                    ],
+                    "profile": {
+                      "name": "John Developer",
+                      "role": "Backend Developer",
+                      "gender": "male",
+                      "permissions": {
+                        "feature_flags": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or developer exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Name is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Developer creation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Failed to create developer!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/developer/getDevelopers": {
+      "post": {
+        "operationId": "developer-getDevelopers",
+        "summary": "Get Developers",
+        "description": "POST /dashboard/developer/getDevelopers",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": "User authentication data",
+                    "example": {
+                      "userId": "654abc123456",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Developers retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "_id": "654dev123456",
+                      "email": "dev@example.com",
+                      "isAdmin": false,
+                      "access": [
+                        "feature_flags"
+                      ],
+                      "profile": {
+                        "name": "John Developer",
+                        "role": "Backend Developer",
+                        "gender": "male"
+                      }
+                    }
+                  ],
+                  "count": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No developers found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "No developers found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch developers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Database query failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/developer/getDeveloper": {
+      "post": {
+        "operationId": "developer-getDeveloper",
+        "summary": "Get Developer",
+        "description": "POST /dashboard/developer/getDeveloper",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "MongoDB developer ID",
+                    "example": "654dev123456"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "User authentication data",
+                    "example": {
+                      "userId": "654abc123456",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Developer retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "_id": "654dev123456",
+                    "email": "dev@example.com",
+                    "isAdmin": false,
+                    "access": [
+                      "feature_flags"
+                    ],
+                    "profile": {
+                      "name": "John Developer",
+                      "role": "Backend Developer",
+                      "gender": "male"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Developer ID required or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Developer ID is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch developer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Database query failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/developer/updateDeveloper": {
+      "post": {
+        "operationId": "developer-updateDeveloper",
+        "summary": "Update Developer",
+        "description": "POST /dashboard/developer/updateDeveloper",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "MongoDB developer ID to update",
+                    "example": "654dev123456"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Updated developer name",
+                    "example": "John Updated"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Updated developer role",
+                    "example": "Senior Developer"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "description": "Updated gender",
+                    "example": "male"
+                  },
+                  "permission": {
+                    "type": "object",
+                    "description": "Updated permissions",
+                    "example": {
+                      "feature_flags": true,
+                      "builds": true
+                    }
+                  },
+                  "isAdmin": {
+                    "type": "boolean",
+                    "description": "Updated admin status",
+                    "example": true
+                  },
+                  "access": {
+                    "type": "array",
+                    "description": "Updated access array",
+                    "example": [
+                      "feature_flags",
+                      "builds",
+                      "users"
+                    ]
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "User authentication data",
+                    "example": {
+                      "userId": "654abc123456",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Developer updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Developer updated successfully",
+                  "data": {
+                    "_id": "654dev123456",
+                    "email": "dev@example.com",
+                    "isAdmin": true,
+                    "access": [
+                      "feature_flags",
+                      "builds"
+                    ],
+                    "profile": {
+                      "name": "John Updated",
+                      "role": "Senior Developer",
+                      "gender": "male"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Developer ID required or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Developer ID is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to update developer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Database update failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/developer/deleteDeveloper": {
+      "post": {
+        "operationId": "developer-deleteDeveloper",
+        "summary": "Delete Developer",
+        "description": "POST /dashboard/developer/deleteDeveloper",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "MongoDB developer ID to delete",
+                    "example": "654dev123456"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "User authentication data",
+                    "example": {
+                      "userId": "654abc123456",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Developer deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Developer deleted successfully",
+                  "data": {
+                    "id": "654dev123456",
+                    "email": "dev@example.com"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Developer ID required or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Developer ID is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to delete developer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Database deletion failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/excalidrawBoard/getBoards": {
+      "post": {
+        "operationId": "excalidrawBoard-getBoards",
+        "summary": "Get Boards",
+        "description": "POST /dashboard/excalidrawBoard/getBoards",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/excalidrawBoard/getBoard": {
+      "post": {
+        "operationId": "excalidrawBoard-getBoard",
+        "summary": "Get Board",
+        "description": "POST /dashboard/excalidrawBoard/getBoard",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/excalidrawBoard/createBoard": {
+      "post": {
+        "operationId": "excalidrawBoard-createBoard",
+        "summary": "Create Board",
+        "description": "POST /dashboard/excalidrawBoard/createBoard",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/excalidrawBoard/updateBoard": {
+      "post": {
+        "operationId": "excalidrawBoard-updateBoard",
+        "summary": "Update Board",
+        "description": "POST /dashboard/excalidrawBoard/updateBoard",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/excalidrawBoard/cloneBoard": {
+      "post": {
+        "operationId": "excalidrawBoard-cloneBoard",
+        "summary": "Clone Board",
+        "description": "POST /dashboard/excalidrawBoard/cloneBoard",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/excalidrawBoard/deleteBoard": {
+      "post": {
+        "operationId": "excalidrawBoard-deleteBoard",
+        "summary": "Delete Board",
+        "description": "POST /dashboard/excalidrawBoard/deleteBoard",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/featureFlag/getFeatureFlags": {
+      "post": {
+        "operationId": "featureFlag-getFeatureFlags",
+        "summary": "Get Feature Flags",
+        "description": "POST /dashboard/featureFlag/getFeatureFlags",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": "Developer authentication data",
+                    "example": {
+                      "developerId": "654dev123456",
+                      "isDeveloper": true
+                    }
+                  },
+                  "query": {
+                    "type": "object",
+                    "description": "Optional query parameters",
+                    "example": {}
+                  }
+                },
+                "required": [
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature flags retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "name": "new_ui_feature",
+                      "type": "boolean",
+                      "value": "true",
+                      "createdBy": "654dev123456",
+                      "createdAt": "2024-01-15T10:30:00.000Z"
+                    }
+                  ],
+                  "count": 1
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch feature flags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Redis connection failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/featureFlag/createFeatureFlag": {
+      "post": {
+        "operationId": "featureFlag-createFeatureFlag",
+        "summary": "Create Feature Flag",
+        "description": "POST /dashboard/featureFlag/createFeatureFlag",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique feature flag name",
+                    "example": "new_ui_feature"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Feature flag type (boolean, integer, string)",
+                    "example": "boolean"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Feature flag value",
+                    "example": "true"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "Developer authentication data",
+                    "example": {
+                      "developerId": "654dev123456",
+                      "isDeveloper": true
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "type",
+                  "value",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature flag created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Feature flag created successfully",
+                  "data": {
+                    "name": "new_ui_feature",
+                    "type": "boolean",
+                    "value": "true",
+                    "createdBy": "654dev123456",
+                    "createdAt": "2024-01-15T10:30:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or flag exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Missing required fields: name, type, value"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Feature flag creation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Redis storage failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/featureFlag/updateFeatureFlag": {
+      "post": {
+        "operationId": "featureFlag-updateFeatureFlag",
+        "summary": "Update Feature Flag",
+        "description": "POST /dashboard/featureFlag/updateFeatureFlag",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Feature flag name to update",
+                    "example": "new_ui_feature"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "New feature flag value",
+                    "example": "false"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "Admin authentication data",
+                    "example": {
+                      "developerId": "654admin123",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "value",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature flag updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Feature flag updated successfully",
+                  "data": {
+                    "name": "new_ui_feature",
+                    "type": "boolean",
+                    "value": "false",
+                    "updatedBy": "654admin123",
+                    "updatedAt": "2024-01-15T11:30:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or flag not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Feature flag name and value are required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Feature flag update failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Redis update failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/featureFlag/deleteFeatureFlag": {
+      "post": {
+        "operationId": "featureFlag-deleteFeatureFlag",
+        "summary": "Delete Feature Flag",
+        "description": "POST /dashboard/featureFlag/deleteFeatureFlag",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Feature flag name to delete",
+                    "example": "new_ui_feature"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "Admin authentication data",
+                    "example": {
+                      "developerId": "654admin123",
+                      "isAdmin": true
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature flag deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Feature flag deleted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Feature flag name required or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Feature flag name is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Feature flag deletion failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Redis deletion failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/featureFlag/getFeatureFlagByName": {
+      "post": {
+        "operationId": "featureFlag-getFeatureFlagByName",
+        "summary": "Get Feature Flag By Name",
+        "description": "POST /dashboard/featureFlag/getFeatureFlagByName",
+        "tags": [
+          "Dashboard"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Feature flag name to retrieve",
+                    "example": "new_ui_feature"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "Developer authentication data",
+                    "example": {
+                      "developerId": "654dev123456",
+                      "isDeveloper": true
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature flag retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "name": "new_ui_feature",
+                    "type": "boolean",
+                    "value": "true",
+                    "createdBy": "654dev123456",
+                    "createdAt": "2024-01-15T10:30:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Feature flag name required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Feature flag name is required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature flag not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Feature flag not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch feature flag",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Redis query failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/query/createQuery": {
+      "post": {
+        "operationId": "query-createQuery",
+        "summary": "Create Query",
+        "description": "POST /dashboard/query/createQuery",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/query/getQueries": {
+      "post": {
+        "operationId": "query-getQueries",
+        "summary": "Get Queries",
+        "description": "POST /dashboard/query/getQueries",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/query/updateQuery": {
+      "post": {
+        "operationId": "query-updateQuery",
+        "summary": "Update Query",
+        "description": "POST /dashboard/query/updateQuery",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/query/deleteQuery": {
+      "post": {
+        "operationId": "query-deleteQuery",
+        "summary": "Delete Query",
+        "description": "POST /dashboard/query/deleteQuery",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/query/approveQuery": {
+      "post": {
+        "operationId": "query-approveQuery",
+        "summary": "Approve Query",
+        "description": "POST /dashboard/query/approveQuery",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/query/executeQuery": {
+      "post": {
+        "operationId": "query-executeQuery",
+        "summary": "Execute Query",
+        "description": "POST /dashboard/query/executeQuery",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/dashboard/whitelistedUser/add": {
+      "post": {
+        "operationId": "whitelistedUser-addWhitelistedUser",
+        "summary": "Add Whitelisted User",
+        "description": "POST /dashboard/whitelistedUser/add",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/whitelistedUser/getAll": {
+      "post": {
+        "operationId": "whitelistedUser-getWhitelistedUsers",
+        "summary": "Get Whitelisted Users",
+        "description": "POST /dashboard/whitelistedUser/getAll",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/whitelistedUser/delete": {
+      "post": {
+        "operationId": "whitelistedUser-deleteWhitelistedUser",
+        "summary": "Delete Whitelisted User",
+        "description": "POST /dashboard/whitelistedUser/delete",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/whitelistedUser/search": {
+      "post": {
+        "operationId": "whitelistedUser-searchWhitelistedUsers",
+        "summary": "Search Whitelisted Users",
+        "description": "POST /dashboard/whitelistedUser/search",
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/docs/structure/structure": {
+      "get": {
+        "operationId": "structure--structure",
+        "summary": "/structure",
+        "description": "GET /docs/structure/structure",
+        "tags": [
+          "Docs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/docs/structure/services": {
+      "get": {
+        "operationId": "structure--services",
+        "summary": "/services",
+        "description": "GET /docs/structure/services",
+        "tags": [
+          "Docs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/docs/structure/endpoints": {
+      "get": {
+        "operationId": "structure--endpoints",
+        "summary": "/endpoints",
+        "description": "GET /docs/structure/endpoints",
+        "tags": [
+          "Docs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/docs/structure/search": {
+      "get": {
+        "operationId": "structure--search",
+        "summary": "/search",
+        "description": "GET /docs/structure/search",
+        "tags": [
+          "Docs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/docs/structure/openapi": {
+      "get": {
+        "operationId": "structure--openapi",
+        "summary": "/openapi",
+        "description": "GET /docs/structure/openapi",
+        "tags": [
+          "Docs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/docs/structure/stats": {
+      "get": {
+        "operationId": "structure--stats",
+        "summary": "/stats",
+        "description": "GET /docs/structure/stats",
+        "tags": [
+          "Docs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/entity/building/": {
+      "get": {
+        "operationId": "building-getById",
+        "summary": "Get By Id",
+        "description": "GET /entity/building/",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "building-create",
+        "summary": "Create",
+        "description": "POST /entity/building/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "building-update",
+        "summary": "Update",
+        "description": "PUT /entity/building/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "any",
+                    "description": "The id parameter"
+                  },
+                  "updates": {
+                    "type": "any",
+                    "description": "The updates parameter"
+                  }
+                },
+                "required": [
+                  "id",
+                  "updates"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "building-deleteBuilding",
+        "summary": "Delete Building",
+        "description": "DELETE /entity/building/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "any",
+                    "description": "The id parameter"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/building/allActive": {
+      "get": {
+        "operationId": "building--allActive",
+        "summary": "/all Active",
+        "description": "GET /entity/building/allActive",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/entity/character/": {
+      "get": {
+        "operationId": "character-getById",
+        "summary": "Get By Id",
+        "description": "GET /entity/character/",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Character or all characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "_id": "c1",
+                  "health": 100
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "character-create",
+        "summary": "Create",
+        "description": "POST /entity/character/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "health": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "maxHealth": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  "moveSpeed": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "attackType": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "attackRange": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "level": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "shield": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "isVisible": {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  "activeShield": {
+                    "type": "boolean",
+                    "description": ""
+                  },
+                  "vision": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "weight": {
+                    "type": "number",
+                    "description": ""
+                  },
+                  "inventory": {
+                    "type": "array",
+                    "description": ""
+                  },
+                  "buildingsCanBuild": {
+                    "type": "array",
+                    "description": ""
+                  },
+                  "buildingsCanUse": {
+                    "type": "array",
+                    "description": ""
+                  },
+                  "artifactsCanUse": {
+                    "type": "array",
+                    "description": ""
+                  },
+                  "artifactsCanCraft": {
+                    "type": "array",
+                    "description": ""
+                  },
+                  "resourcesCanCraft": {
+                    "type": "array",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "health",
+                  "maxHealth",
+                  "isActive",
+                  "moveSpeed",
+                  "attackType",
+                  "attackRange",
+                  "level",
+                  "shield",
+                  "isVisible",
+                  "activeShield",
+                  "vision",
+                  "target",
+                  "weight",
+                  "inventory",
+                  "buildingsCanBuild",
+                  "buildingsCanUse",
+                  "artifactsCanUse",
+                  "artifactsCanCraft",
+                  "resourcesCanCraft"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Character created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "type": "number"
+                    },
+                    "additionalFields": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "_id": "c1",
+                  "health": 100
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "character-update",
+        "summary": "Update",
+        "description": "PUT /entity/character/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "updates": {
+                    "type": "object",
+                    "description": "Fields to update"
+                  }
+                },
+                "required": [
+                  "id",
+                  "updates"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Character updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string"
+                    },
+                    "updatedFields": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "_id": "c1",
+                  "health": 120
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "character-deleteCharacter",
+        "summary": "Delete Character",
+        "description": "DELETE /entity/character/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Character deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "_id": "c1"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/character/allActive": {
+      "get": {
+        "operationId": "character--allActive",
+        "summary": "/all Active",
+        "description": "GET /entity/character/allActive",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/entity/globalConfig/": {
+      "get": {
+        "operationId": "globalConfig-getById",
+        "summary": "Get By Id",
+        "description": "GET /entity/globalConfig/",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "globalConfig-create",
+        "summary": "Create",
+        "description": "POST /entity/globalConfig/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "globalConfig-update",
+        "summary": "Update",
+        "description": "PUT /entity/globalConfig/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "any",
+                    "description": "The id parameter"
+                  },
+                  "updates": {
+                    "type": "any",
+                    "description": "The updates parameter"
+                  }
+                },
+                "required": [
+                  "id",
+                  "updates"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "globalConfig-deleteConfig",
+        "summary": "Delete Config",
+        "description": "DELETE /entity/globalConfig/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "any",
+                    "description": "The id parameter"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/globalConfig/all": {
+      "delete": {
+        "operationId": "globalConfig-getAll",
+        "summary": "Get All",
+        "description": "DELETE /entity/globalConfig/all",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/inventory/": {
+      "get": {
+        "operationId": "inventory-getById",
+        "summary": "Get By Id",
+        "description": "GET /entity/inventory/",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "inventory-create",
+        "summary": "Create",
+        "description": "POST /entity/inventory/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "any",
+                    "description": "The data parameter"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "inventory-update",
+        "summary": "Update",
+        "description": "PUT /entity/inventory/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "any",
+                    "description": "The id parameter"
+                  },
+                  "updates": {
+                    "type": "any",
+                    "description": "The updates parameter"
+                  }
+                },
+                "required": [
+                  "id",
+                  "updates"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "inventory-deleteInventory",
+        "summary": "Delete Inventory",
+        "description": "DELETE /entity/inventory/",
+        "tags": [
+          "Entity"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "any",
+                    "description": "The id parameter"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/inventory/allActive": {
+      "get": {
+        "operationId": "inventory--allActive",
+        "summary": "/all Active",
+        "description": "GET /entity/inventory/allActive",
+        "tags": [
+          "Entity"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/game/chooseCharacter/chooseCharacter": {
+      "post": {
+        "operationId": "chooseCharacter-choose",
+        "summary": "Choose",
+        "description": "POST /game/chooseCharacter/chooseCharacter",
+        "tags": [
+          "Game Service"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Character ObjectId",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "User data with userId",
+                    "example": {
+                      "userId": "user_123"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Character selected/updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "userProfile": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Character selected successfully!",
+                  "userProfile": {
+                    "userId": "user_123",
+                    "characterId": "507f1f77bcf86cd799439011"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Please provide a character id",
+                  "message": "Character ID required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Character selection failed",
+                  "message": "Server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/gameData/gameData": {
+      "post": {
+        "operationId": "gameData-gameData",
+        "summary": "Game Data",
+        "description": "POST /game/gameData/gameData",
+        "tags": [
+          "Game Service"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gameId": {
+                    "type": "string",
+                    "description": "Game ObjectId",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "userData": {
+                    "type": "object",
+                    "description": "Optional user data",
+                    "example": {
+                      "userId": "user_123"
+                    }
+                  }
+                },
+                "required": [
+                  "gameId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Game data retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "message": "Game data fetched successfully",
+                  "data": {
+                    "_id": "game_123",
+                    "saltKey": "abc123",
+                    "players": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Game ID required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": 400,
+                  "message": "Game ID is required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Game not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "status": 404,
+                  "message": "Game not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/gameOver/gameOver": {
+      "post": {
+        "operationId": "gameOver-gameOver",
+        "summary": "Game Over",
+        "description": "--------------------------------------------------------------------------",
+        "tags": [
+          "Game Service"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gameId": {
+                    "type": "string",
+                    "description": "Game ObjectId",
+                    "example": "507f1f77bcf86cd799439011"
+                  }
+                },
+                "required": [
+                  "gameId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Game over processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Game over processed successfully",
+                  "status": {
+                    "_id": "game_123",
+                    "completed": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Game ID is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": false,
+                  "message": "Game over process failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/info/characters": {
+      "get": {
+        "operationId": "info-getActiveCharacters",
+        "summary": "Get Active Characters",
+        "description": "GET /game/info/characters",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "_id": "c1",
+                    "isActive": true
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/info/buildings": {
+      "get": {
+        "operationId": "info-getActiveBuildings",
+        "summary": "Get Active Buildings",
+        "description": "GET /game/info/buildings",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/info/inventory": {
+      "get": {
+        "operationId": "info-getActiveInventory",
+        "summary": "Get Active Inventory",
+        "description": "GET /game/info/inventory",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/info/global-config": {
+      "get": {
+        "operationId": "info-getGlobalConfig",
+        "summary": "Get Global Config",
+        "description": "GET /game/info/global-config",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/info/serverData": {
+      "post": {
+        "operationId": "info-serverData",
+        "summary": "Server Data",
+        "description": "POST /game/info/serverData",
+        "tags": [
+          "Game"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Game ID"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Game and active characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "game": {
+                      "type": "string"
+                    },
+                    "characters": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "game": {
+                    "_id": "g1"
+                  },
+                  "characters": []
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/killPlayer/killPlayer": {
+      "post": {
+        "operationId": "killPlayer-Kill",
+        "summary": "Kill",
+        "description": "POST /game/killPlayer/killPlayer",
+        "tags": [
+          "Game Service"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Player ObjectId",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "User ObjectId",
+                    "example": "507f1f77bcf86cd799439012"
+                  }
+                },
+                "required": [
+                  "id",
+                  "userId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Player kill result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Player user_123 removed from game game_456"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Please provide a player id",
+                  "message": "Player ID required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Player kill process failed",
+                  "message": "Server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/joinLobby": {
+      "post": {
+        "operationId": "lobby-joinLobby",
+        "summary": "Join Lobby",
+        "description": "----------------------------- JOIN LOBBY -----------------------------",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  },
+                  "lobbyId": {
+                    "type": "string",
+                    "description": "",
+                    "example": "12345"
+                  }
+                },
+                "required": [
+                  "userData",
+                  "lobbyId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Joined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lobbyId": {
+                      "type": "string"
+                    },
+                    "members": {
+                      "type": "string"
+                    },
+                    "leaderId": {
+                      "type": "string"
+                    },
+                    "numberOfPlayers": {
+                      "type": "number"
+                    },
+                    "tree": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "lobbyId": "12345",
+                  "members": [
+                    {
+                      "userId": "u1"
+                    }
+                  ],
+                  "leaderId": "u1",
+                  "numberOfPlayers": 2,
+                  "tree": {
+                    "player": 2,
+                    "index": 1,
+                    "positionMap": {},
+                    "filledTree": []
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lobby not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/startMatch": {
+      "post": {
+        "operationId": "lobby-startMatch",
+        "summary": "Start Match",
+        "description": "----------------------------- START MATCH -----------------------------",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  },
+                  "lobbyId": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "userData",
+                  "lobbyId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Match started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "gameId": {
+                      "type": "string"
+                    },
+                    "saltKey": {
+                      "type": "string"
+                    },
+                    "players": {
+                      "type": "string"
+                    },
+                    "teams": {
+                      "type": "string"
+                    },
+                    "totalPlayers": {
+                      "type": "number"
+                    },
+                    "serverIP": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "gameId": "g1",
+                  "saltKey": "abc123",
+                  "players": [
+                    {
+                      "userId": "u1",
+                      "clientId": 1,
+                      "team": "A"
+                    }
+                  ],
+                  "teams": {
+                    "teamA": [
+                      {
+                        "userId": "u1",
+                        "clientId": 1
+                      }
+                    ],
+                    "teamB": []
+                  },
+                  "totalPlayers": 2,
+                  "serverIP": "1.2.3.4"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not leader",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/leaveLobby": {
+      "post": {
+        "operationId": "lobby-leaveLobby",
+        "summary": "Leave Lobby",
+        "description": "----------------------------- LEAVE LOBBY -----------------------------",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  },
+                  "lobbyId": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "userData",
+                  "lobbyId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Left or destroyed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lobbyDestroyed": {
+                      "type": "boolean"
+                    },
+                    "remainingMembers": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "example": {
+                  "lobbyDestroyed": true,
+                  "remainingMembers": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/createLobby": {
+      "post": {
+        "operationId": "lobby-createLobby",
+        "summary": "Create Lobby",
+        "description": "----------------------------- CREATE LOBBY -----------------------------",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  },
+                  "lobbyName": {
+                    "type": "string",
+                    "description": "",
+                    "example": "My Squad"
+                  }
+                },
+                "required": [
+                  "userData",
+                  "lobbyName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lobby created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lobbyId": {
+                      "type": "string"
+                    },
+                    "lobbyName": {
+                      "type": "string"
+                    },
+                    "isLeader": {
+                      "type": "boolean"
+                    },
+                    "numberOfPlayers": {
+                      "type": "number"
+                    },
+                    "tree": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "lobbyId": "12345",
+                  "isLeader": true,
+                  "numberOfPlayers": 1,
+                  "tree": {
+                    "player": 1,
+                    "index": 0,
+                    "positionMap": {},
+                    "filledTree": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already in game/lobby",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "You are already in an active game"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/getLobbyStatus": {
+      "post": {
+        "operationId": "lobby-getLobbyStatus",
+        "summary": "Get Lobby Status",
+        "description": "----------------------------- GET LOBBY STATUS -----------------------------",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  },
+                  "lobbyId": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "userData",
+                  "lobbyId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inLobby": {
+                      "type": "boolean"
+                    },
+                    "inGame": {
+                      "type": "boolean"
+                    },
+                    "gameId": {
+                      "type": "string"
+                    },
+                    "tree": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "inLobby": true,
+                  "inGame": false,
+                  "tree": {
+                    "player": 1,
+                    "index": 0,
+                    "positionMap": {},
+                    "filledTree": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/getActiveGame": {
+      "post": {
+        "operationId": "lobby-getActiveGame",
+        "summary": "Get Active Game",
+        "description": "----------------------------- GET ACTIVE GAME -----------------------------",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "any",
+                    "description": "The userData parameter"
+                  }
+                },
+                "required": [
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/mockLobbyData": {
+      "post": {
+        "operationId": "lobby-mockLobbyData",
+        "summary": "Mock Lobby Data",
+        "description": "POST /game/lobby/mockLobbyData",
+        "tags": [
+          "Game"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serverIP": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "clientIndex": {
+                    "type": "number",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "serverIP",
+                  "clientIndex"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mock game",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "gameId": {
+                      "type": "string"
+                    },
+                    "players": {
+                      "type": "string"
+                    },
+                    "tree": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "gameId": "mock1",
+                  "players": [
+                    {
+                      "clientId": 1
+                    }
+                  ],
+                  "tree": {
+                    "player": 1,
+                    "index": 0,
+                    "positionMap": {},
+                    "filledTree": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/getServerLobbyStatus": {
+      "post": {
+        "operationId": "lobby-getServerLobbyStatus",
+        "summary": "Get Server Lobby Status",
+        "description": "----------------------- GET SERVER LOBBY STATUS (No User) -----------------------",
+        "tags": [
+          "Game"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lobbyId": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "lobbyId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inLobby": {
+                      "type": "boolean"
+                    },
+                    "inGame": {
+                      "type": "boolean"
+                    },
+                    "serverIP": {
+                      "type": "string"
+                    },
+                    "gameId": {
+                      "type": "string"
+                    },
+                    "tree": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "inLobby": true,
+                  "inGame": false,
+                  "tree": {
+                    "player": 1,
+                    "index": 0,
+                    "positionMap": {},
+                    "filledTree": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/lobby/serverStarted": {
+      "post": {
+        "operationId": "lobby-serverStarted",
+        "summary": "Server Started",
+        "description": "POST /game/lobby/serverStarted",
+        "tags": [
+          "Game"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ipAddress": {
+                    "type": "string",
+                    "description": ""
+                  },
+                  "gameId": {
+                    "type": "string",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "ipAddress",
+                  "gameId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "currentGame": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Game started",
+                  "currentGame": {
+                    "_id": "g1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/matchmaking/findAMatch": {
+      "post": {
+        "operationId": "matchmaking-findAMatch",
+        "summary": "Find A Match",
+        "description": "POST /game/matchmaking/findAMatch",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Match result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matchFound": {
+                      "type": "boolean"
+                    },
+                    "game": {
+                      "type": "string"
+                    },
+                    "queueLength": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "matchFound": true,
+                  "game": {
+                    "_id": "g1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/matchmaking/cancelSearch": {
+      "post": {
+        "operationId": "matchmaking-cancelSearch",
+        "summary": "Cancel Search",
+        "description": "POST /game/matchmaking/cancelSearch",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "remove": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "example": {
+                  "remove": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/matchmaking/getStatus": {
+      "post": {
+        "operationId": "matchmaking-getStatus",
+        "summary": "Get Status",
+        "description": "POST /game/matchmaking/getStatus",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userData": {
+                    "type": "object",
+                    "description": ""
+                  }
+                },
+                "required": [
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Match status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inGame": {
+                      "type": "boolean"
+                    },
+                    "inQueue": {
+                      "type": "boolean"
+                    },
+                    "gameId": {
+                      "type": "string"
+                    },
+                    "secretKey": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "inGame": true,
+                  "gameId": "g1",
+                  "secretKey": "abc123"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/unityLogs/logs": {
+      "post": {
+        "operationId": "unityLogs-bulkInsertLogs",
+        "summary": "Bulk Insert Logs",
+        "description": "POST /game/unityLogs/logs",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logs": {
+                    "type": "array",
+                    "description": "Array of Unity gameplay/application logs",
+                    "example": [
+                      {
+                        "type": "info",
+                        "message": "Player connected to server",
+                        "timestamp": 1732550000000,
+                        "playerId": "p_123",
+                        "details": {
+                          "level": 5,
+                          "scene": "MainMenu"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "logs"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logs inserted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "insertedCount": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "insertedCount": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid log data format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Validation error",
+                  "message": "Logs array required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error while saving logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Server error",
+                  "message": "Failed to insert logs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/unityLogs/errors": {
+      "post": {
+        "operationId": "unityLogs-bulkInsertErrors",
+        "summary": "Bulk Insert Errors",
+        "description": "POST /game/unityLogs/errors",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "errors": {
+                    "type": "array",
+                    "description": "Array of Unity runtime errors/crash reports",
+                    "example": [
+                      {
+                        "type": "exception",
+                        "message": "NullReferenceException in PlayerController",
+                        "timestamp": 1732550200000,
+                        "deviceId": "device_45",
+                        "stackTrace": "PlayerController.Update() → Movement.cs:12"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "errors"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Errors inserted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "insertedCount": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "insertedCount": 3
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid error array format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Validation error",
+                  "message": "Errors array required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error while storing error logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Server error",
+                  "message": "Failed to insert error logs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/userProfile/": {
+      "get": {
+        "operationId": "userProfile-getProfile",
+        "summary": "Get Profile",
+        "description": "GET /game/userProfile/",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/userProfile/name": {
+      "post": {
+        "operationId": "userProfile-updateName",
+        "summary": "Update Name",
+        "description": "POST /game/userProfile/name",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "any",
+                    "description": "The name parameter"
+                  },
+                  "userData": {
+                    "type": "any",
+                    "description": "The userData parameter"
+                  }
+                },
+                "required": [
+                  "name",
+                  "userData"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/game/userProfile/bulk": {
+      "post": {
+        "operationId": "userProfile-getProfiles",
+        "summary": "Get Profiles",
+        "description": "POST /game/userProfile/bulk",
+        "tags": [
+          "Game"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userIds": {
+                    "type": "any",
+                    "description": "The userIds parameter"
+                  }
+                },
+                "required": [
+                  "userIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

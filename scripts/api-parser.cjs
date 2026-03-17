@@ -1,6 +1,7 @@
 // scripts/api-parser.cjs
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const parser = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
 
@@ -95,6 +96,136 @@ class ApiParser {
     } catch (error) {
       console.error(`Error parsing ${filePath}:`, error.message);
       return null;
+    }
+  }
+
+  /**
+   * Extract JSDoc metadata from a service file for a given function name.
+   * Looks for block comments with @description, @param, @returns, @throws, @roles, @example tags.
+   */
+  extractJSDoc(ast, functionName) {
+    if (!ast) return null;
+
+    let jsDocComment = null;
+
+    traverse(ast, {
+      // Arrow functions: const login = async (...) => { ... }
+      VariableDeclarator(path) {
+        if (path.node.id?.name === functionName && path.parent?.leadingComments?.length) {
+          const block = path.parent.leadingComments.filter(c => c.type === "CommentBlock").pop();
+          if (block) jsDocComment = block.value;
+        }
+      },
+      // Regular function declarations
+      FunctionDeclaration(path) {
+        if (path.node.id?.name === functionName && path.node.leadingComments?.length) {
+          const block = path.node.leadingComments.filter(c => c.type === "CommentBlock").pop();
+          if (block) jsDocComment = block.value;
+        }
+      },
+      // export default { login(...) { } } — properties in exported object
+      ExportDefaultDeclaration(path) {
+        if (path.node.declaration?.type === "ObjectExpression") {
+          path.node.declaration.properties.forEach(prop => {
+            if (prop.key?.name === functionName && prop.leadingComments?.length) {
+              const block = prop.leadingComments.filter(c => c.type === "CommentBlock").pop();
+              if (block) jsDocComment = block.value;
+            }
+          });
+        }
+      },
+    });
+
+    if (!jsDocComment) return null;
+
+    return this.parseJSDocTags(jsDocComment);
+  }
+
+  /**
+   * Parse raw JSDoc comment text into structured metadata matching manual-api-data shape.
+   */
+  parseJSDocTags(raw) {
+    const result = {};
+    const lines = raw.split("\n").map(l => l.replace(/^\s*\*\s?/, "").trim()).filter(Boolean);
+
+    let description = "";
+    const params = {};
+    const responses = {};
+    const errors = [];
+    let roles = null;
+    let example = null;
+
+    for (const line of lines) {
+      if (line.startsWith("@description ")) {
+        description = line.slice(13).trim();
+      } else if (line.startsWith("@param")) {
+        // @param {string} email - User's email address
+        const match = line.match(/@param\s+\{(\w+)\}\s+(\w+)\s*-?\s*(.*)/);
+        if (match) {
+          params[match[2]] = {
+            type: match[1],
+            required: true,
+            description: match[3] || `The ${match[2]} parameter`,
+            example: this.getDefaultExample(match[1]),
+          };
+        }
+      } else if (line.startsWith("@returns")) {
+        // @returns {200} { success: true, message: "OTP sent" }
+        const match = line.match(/@returns\s+\{(\d+)\}\s*(.*)/);
+        if (match) {
+          const status = match[1];
+          let body = match[2].trim();
+          try {
+            // Try parsing as relaxed JSON
+            body = JSON.parse(body.replace(/(\w+):/g, '"$1":').replace(/'/g, '"'));
+          } catch { /* keep as string */ }
+          responses[status] = {
+            description: Number(status) < 400 ? "Success" : "Error",
+            schema: typeof body === "object" ? body : { message: "string" },
+            examples: typeof body === "object" ? [body] : [],
+          };
+        }
+      } else if (line.startsWith("@throws")) {
+        // @throws {500} Internal server error
+        const match = line.match(/@throws\s+\{(\d+)\}\s*(.*)/);
+        if (match) {
+          errors.push({ type: "throw", description: match[2] });
+          if (!responses[match[1]]) {
+            responses[match[1]] = { description: match[2], schema: { error: "string", message: "string" } };
+          }
+        }
+      } else if (line.startsWith("@roles")) {
+        // @roles user, developer, admin
+        roles = line.slice(6).trim().split(/\s*,\s*/);
+      } else if (line.startsWith("@example")) {
+        // @example { "email": "user@example.com" }
+        const body = line.slice(8).trim();
+        try {
+          example = JSON.parse(body);
+        } catch { /* ignore */ }
+      } else if (!line.startsWith("@") && !description) {
+        // First non-tag line is the description
+        description = line;
+      }
+    }
+
+    if (description) result.description = description;
+    if (Object.keys(params).length > 0) result.requestBody = params;
+    if (Object.keys(responses).length > 0) result.responses = responses;
+    if (errors.length > 0) result.errors = errors;
+    if (roles) result.allowedRoles = roles;
+
+    return Object.keys(result).length > 0 ? result : null;
+  }
+
+  getDefaultExample(type) {
+    switch (type) {
+      case "string": return "example_value";
+      case "number": return 123;
+      case "boolean": return true;
+      case "object": return {};
+      case "array": return [];
+      default: return "example";
     }
   }
 
@@ -279,14 +410,20 @@ class ApiParser {
     let serviceFunctions = {};
 
     // Try main service path or alternative (.js -> ..js)
+    let resolvedServicePath = null;
     if (fs.existsSync(servicePath)) {
+      resolvedServicePath = servicePath;
       serviceFunctions = this.extractServiceInfo(servicePath);
     } else {
       const altPath = servicePath.replace('.js', '..js');
       if (fs.existsSync(altPath)) {
+        resolvedServicePath = altPath;
         serviceFunctions = this.extractServiceInfo(altPath);
       }
     }
+
+    // Parse service AST for JSDoc extraction
+    const serviceAst = resolvedServicePath ? this.parseFile(resolvedServicePath) : null;
 
     const self = this;
 
@@ -354,7 +491,7 @@ class ApiParser {
       },
     });
 
-    return routes;
+    return { routes, serviceAst };
   }
 
   mergeEndpointData(autoData, manualData) {
@@ -476,7 +613,7 @@ class ApiParser {
         console.log(`📄 Processing: ${category}/${name}`);
       }
 
-      const routes = this.extractRoutes(routeFile, serviceFile);
+      const { routes, serviceAst } = this.extractRoutes(routeFile, serviceFile);
       const serviceId = this.serviceConfig[category]?.id || "unknown-service";
 
       const shouldGroup = this.config.parser.autoGroup && routes.length >= this.config.parser.minRoutesForGroup && !this.groupConfig.neverGroup.includes(name);
@@ -509,6 +646,7 @@ class ApiParser {
         const allowedRoles = this.determineRoles(route.authMiddleware, fullPath);
 
         const manualData = this.getManualData(name, route.functionName, route.path, category);
+        const jsDocData = route.functionName && serviceAst ? this.extractJSDoc(serviceAst, route.functionName) : null;
 
         const baseEndpoint = {
           id: endpointId,
@@ -531,7 +669,9 @@ class ApiParser {
           functionName: route.functionName,
         };
 
-        const finalEndpoint = this.mergeEndpointData(baseEndpoint, manualData);
+        // Priority: manual > JSDoc > auto-detected
+        const mergedWithJSDoc = this.mergeEndpointData(baseEndpoint, jsDocData);
+        const finalEndpoint = this.mergeEndpointData(mergedWithJSDoc, manualData);
         if (manualData) manualCount++;
 
         endpoints.push(finalEndpoint);
@@ -579,23 +719,182 @@ class ApiParser {
     return responses;
   }
 
+  /**
+   * Convert internal structure to OpenAPI 3.0 spec
+   */
+  generateOpenAPISpec(backendData, config) {
+    const spec = {
+      openapi: "3.0.3",
+      info: {
+        title: config.title || "API Documentation",
+        description: config.description || "Auto-generated API documentation",
+        version: config.version || "1.0.0",
+      },
+      servers: (config.servers || []).map(s => ({ url: s.url, description: s.description })),
+      tags: backendData.services.map(s => ({
+        name: s.title,
+        description: s.description,
+      })),
+      paths: {},
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+          },
+        },
+      },
+    };
+
+    // Build paths from endpoints
+    for (const endpoint of backendData.endpoints) {
+      if (endpoint.type !== "endpoint" || !endpoint.method || !endpoint.path) continue;
+
+      const apiPath = `/api${endpoint.path}`;
+      const method = endpoint.method.toLowerCase();
+
+      if (!spec.paths[apiPath]) spec.paths[apiPath] = {};
+
+      const operation = {
+        operationId: endpoint.id,
+        summary: endpoint.title,
+        description: endpoint.description,
+        tags: [this.findServiceTitle(backendData.services, endpoint)],
+      };
+
+      // Security
+      if (endpoint.requiresAuth) {
+        operation.security = [{ BearerAuth: [] }];
+      }
+
+      // Request body
+      if (endpoint.requestBody && Object.keys(endpoint.requestBody).length > 0 && method !== "get") {
+        const properties = {};
+        const required = [];
+
+        for (const [key, val] of Object.entries(endpoint.requestBody)) {
+          const fieldType = typeof val === "object" ? (val.type || "string") : String(val);
+          properties[key] = {
+            type: fieldType,
+            description: typeof val === "object" ? (val.description || "") : `The ${key} parameter`,
+          };
+          if (typeof val === "object" && val.example !== undefined) {
+            properties[key].example = val.example;
+          }
+          if (typeof val === "object" ? val.required !== false : true) {
+            required.push(key);
+          }
+        }
+
+        operation.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties,
+                ...(required.length > 0 ? { required } : {}),
+              },
+            },
+          },
+        };
+      }
+
+      // Responses
+      operation.responses = {};
+      if (endpoint.responses && Object.keys(endpoint.responses).length > 0) {
+        for (const [status, data] of Object.entries(endpoint.responses)) {
+          operation.responses[status] = {
+            description: data.description || "Response",
+          };
+          if (data.schema) {
+            operation.responses[status].content = {
+              "application/json": {
+                schema: this.schemaToOpenAPI(data.schema),
+                ...(data.examples?.length ? { example: data.examples[0] } : {}),
+              },
+            };
+          }
+        }
+      } else {
+        operation.responses["200"] = { description: "Success" };
+      }
+
+      spec.paths[apiPath][method] = operation;
+    }
+
+    return spec;
+  }
+
+  findServiceTitle(services, endpoint) {
+    const service = services.find(s => s.id === endpoint.parentId);
+    if (service) return service.title;
+    // Check if parent is a group, find its parent service
+    return endpoint.category || "API";
+  }
+
+  schemaToOpenAPI(schema) {
+    if (!schema || typeof schema !== "object") return { type: "object" };
+
+    const properties = {};
+    for (const [key, val] of Object.entries(schema)) {
+      if (typeof val === "string") {
+        properties[key] = { type: val === "boolean" ? "boolean" : val === "number" ? "number" : "string" };
+      } else if (typeof val === "object") {
+        properties[key] = { type: "object" };
+      } else {
+        properties[key] = { type: "string" };
+      }
+    }
+
+    return { type: "object", properties };
+  }
+
   async generate() {
-    const backendData = await this.generateCompleteStructure();
+    const structure = await this.generateCompleteStructure();
 
     const libDir = path.dirname(this.outputFile);
     if (!fs.existsSync(libDir)) {
       fs.mkdirSync(libDir, { recursive: true });
     }
 
+    // Add meta with hash for staleness detection
+    const structureJSON = JSON.stringify(structure);
+    const hash = crypto.createHash("sha256").update(structureJSON).digest("hex").slice(0, 16);
+
+    const backendData = {
+      meta: {
+        generatedAt: new Date().toISOString(),
+        hash,
+        version: "1.0.0",
+        endpointCount: structure.endpoints.length,
+        serviceCount: structure.services.length,
+      },
+      ...structure,
+    };
+
     const outputContent = `// Auto-generated by API Parser
 // DO NOT EDIT MANUALLY
-// Generated: ${new Date().toISOString()}
+// Generated: ${backendData.meta.generatedAt}
+// Hash: ${hash}
 
 export const backendData = ${JSON.stringify(backendData, null, 2)};
 `;
 
     fs.writeFileSync(this.outputFile, outputContent);
     console.log(`💾 Saved to: ${this.outputFile}`);
+    console.log(`🔑 Hash: ${hash}`);
+
+    // Generate OpenAPI spec if configured
+    const openApiConfig = this.config.openapi;
+    if (openApiConfig) {
+      const spec = this.generateOpenAPISpec(backendData, openApiConfig);
+      const specPath = path.join(libDir, "openapi-spec.json");
+      fs.writeFileSync(specPath, JSON.stringify(spec, null, 2));
+      console.log(`📄 OpenAPI spec saved to: ${specPath}`);
+    }
+
     console.log(`\n🎉 Complete!\n`);
 
     return backendData;
