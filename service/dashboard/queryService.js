@@ -292,7 +292,7 @@ const approveQuery = async (data) => {
 
 const executeQuery = async (data) => {
   try {
-    const { id, userData } = data;
+    const { id, userData, params } = data;
 
     LogModule.log({
       key1: "executeQuery",
@@ -311,12 +311,13 @@ const executeQuery = async (data) => {
     }
 
     const parsed = JSON.parse(query.queryString);
+    const runtimeParams = Array.isArray(params) ? params : [];
     let result;
 
     if (query.type === "mongo") {
-      result = await executeMongoQuery(parsed);
+      result = await executeMongoQuery(parsed, runtimeParams);
     } else if (query.type === "redis") {
-      result = await executeRedisQuery(parsed);
+      result = await executeRedisQuery(parsed, runtimeParams);
     }
 
     // Save result back to the query
@@ -482,8 +483,22 @@ const CURSOR_METHODS = ["find", "aggregate"];
 // Methods that modify cursors
 const CURSOR_MODIFIERS = ["sort", "limit", "skip", "project", "maxTimeMS"];
 
-const executeMongoQuery = async (parsed) => {
-  const { collection, chain, params } = parsed;
+const executeMongoQuery = async (parsed, runtimeParams = []) => {
+  // Support both new simple format { command: "col.find({})..." } and legacy { collection, chain, params }
+  let collection, chain, params;
+
+  if (parsed.command) {
+    // New format: "developers.find({}).limit(5)"
+    const cmd = parsed.command.trim();
+    const dotIndex = cmd.indexOf(".");
+    if (dotIndex === -1) throw new Error("MongoDB command must be in format: collection.method(args)...");
+    collection = cmd.substring(0, dotIndex);
+    chain = cmd.substring(dotIndex);
+    params = runtimeParams.length > 0 ? runtimeParams : [];
+  } else {
+    ({ collection, chain } = parsed);
+    params = runtimeParams.length > 0 ? runtimeParams : (parsed.params || []);
+  }
 
   if (!collection) throw new Error("Collection name is required");
   if (!chain) throw new Error("Chain command is required");
@@ -528,8 +543,24 @@ const executeMongoQuery = async (parsed) => {
   return await cursor;
 };
 
-const executeRedisQuery = async (parsed) => {
-  const { command, args } = parsed;
+const executeRedisQuery = async (parsed, runtimeParams = []) => {
+  // Support both new simple format { command: "GET <<$>>" } and legacy { command, args }
+  let command, args;
+
+  if (parsed.command) {
+    // Replace <<$>> placeholders with runtime params
+    let resolvedCmd = parsed.command.trim();
+    if (runtimeParams.length > 0) {
+      let idx = 0;
+      resolvedCmd = resolvedCmd.replace(/<<\$>>/g, () => runtimeParams[idx++] ?? "");
+    }
+    const parts = resolvedCmd.split(/\s+/);
+    command = parts[0];
+    args = parts.slice(1);
+  } else {
+    command = parsed.command;
+    args = parsed.args;
+  }
 
   if (!command) throw new Error("Redis command is required");
 
