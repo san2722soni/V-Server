@@ -166,7 +166,7 @@ const createBuild = async (data) => {
       };
     }
 
-    const { message, userData, platform, releaseType = "release", buildFormat } = data;
+    const { message, userData, platform, releaseType = "release", buildFormat, branchName } = data;
     const userId = userData?.userId || "";
 
     if (!platform || !["windows", "android"].includes(platform)) {
@@ -280,10 +280,11 @@ const createBuild = async (data) => {
     });
 
     // Select build script and args based on platform
+    const branch = branchName ? branchName.trim() : "dev";
     const buildScript = platform === "android" ? "buildAndroid.sh" : "buildWindows.sh";
     const buildArgs = platform === "android"
-      ? `${version} ${releaseType} ${buildFormat || "apk"}`
-      : `${version} ${releaseType}`;
+      ? `${version} ${releaseType} ${buildFormat || "apk"} ${branch}`
+      : `${version} ${releaseType} ${branch}`;
 
     LogModule.log({
       key1: "createClientBuild",

@@ -162,7 +162,7 @@ const createBuild = async (data) => {
       };
     }
 
-    const { message, userData } = data;
+    const { message, userData, branchName } = data;
     const userId = userData?.userId || "";
 
     if (!message) {
@@ -266,7 +266,7 @@ const createBuild = async (data) => {
 
     // Making build in AWS server using the private IP from config
     exec(
-      `ssh ubuntu@${config.UNITY_SERVER_IP} "cd /home/ubuntu/scripts && nohup ./buildServer.sh ${version} > build.log 2>&1 &"`,
+      `ssh ubuntu@${config.UNITY_SERVER_IP} "cd /home/ubuntu/scripts && nohup ./buildServer.sh ${version} ${branchName ? branchName.trim() : "dev"} > build.log 2>&1 &"`,
       async (err, stdout, stderr) => {
         if (err) {
           LogModule.error({
