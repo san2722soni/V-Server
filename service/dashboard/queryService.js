@@ -369,11 +369,18 @@ const replacePlaceholders = (chain, params) => {
     return JSON.stringify(val);
   });
 
-  // Second pass: replace bare <<$>> with JSON-stringified value
+  // Second pass: replace bare <<$>> with JSON-serialized value
+  // Try to auto-coerce: if the string looks like a number/bool/object, parse it first
+  // so that limit(<<$>>) with "3" → limit(3) not limit("3")
   result = result.replace(/<<\$>>/g, () => {
     if (paramIndex >= params.length) throw new Error("Not enough parameters for placeholders");
     const val = params[paramIndex++];
-    return JSON.stringify(val);
+    try {
+      const coerced = JSON.parse(val);
+      return JSON.stringify(coerced);
+    } catch {
+      return JSON.stringify(val); // plain string — keep with quotes
+    }
   });
 
   return result;
