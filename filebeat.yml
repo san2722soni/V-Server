@@ -1,0 +1,76 @@
+# =========================== Filebeat Inputs ===========================
+
+filebeat.inputs:
+
+  # Server logs
+  - type: filestream
+    id: v-server-logs
+    enabled: true
+    paths:
+      - f:/V_WORK/V-Server/logs/v-log.log
+    prospector.scanner.fingerprint.enabled: false
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+    fields:
+      index_type: "log"
+    fields_under_root: false
+
+  # Server errors
+  - type: filestream
+    id: v-server-errors
+    enabled: true
+    paths:
+      - f:/V_WORK/V-Server/logs/v-error.log
+    prospector.scanner.fingerprint.enabled: false
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+    fields:
+      index_type: "error"
+    fields_under_root: false
+
+  # Unity client logs
+  - type: filestream
+    id: v-unity-logs
+    enabled: true
+    paths:
+      - f:/V_WORK/V-Server/logs/v-unity.log
+    prospector.scanner.fingerprint.enabled: false
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+    fields:
+      index_type: "unity"
+    fields_under_root: false
+
+# =========================== Elasticsearch Output ===========================
+
+output.elasticsearch:
+  hosts: ["https://es.olivs.in:443"]
+  username: "elastic"
+  password: "rG7iXjae9rxPiradoJDXf9pk"
+  ssl.verification_mode: none
+
+  indices:
+    - index: "v-log-%{+yyyy.MM.dd}"
+      when.equals:
+        fields.index_type: "log"
+    - index: "v-error-%{+yyyy.MM.dd}"
+      when.equals:
+        fields.index_type: "error"
+    - index: "v-unity-%{+yyyy.MM.dd}"
+      when.equals:
+        fields.index_type: "unity"
+
+# =========================== Logging ===========================
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: f:/V_WORK/V-Server/logs/filebeat
+  name: filebeat.log
+  keepfiles: 3

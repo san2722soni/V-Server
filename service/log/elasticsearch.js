@@ -1,114 +1,38 @@
-import { LOG_TYPES, enableESLogging } from '../../constants/index.js';
-import { ErrorSchema, LogSchema } from './schema.js';
-import ES from '../../db/elastic.js';
-const ElasticSearch = ES.client;
+import { LOG_TYPES, enableLogging } from '../../constants/index.js';
+import pino from 'pino';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const LogsLifecycle = 7;
-const ErrorsLifecycle = 30;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const logsDir = path.join(__dirname, '../../logs');
 
-let ErrorCount = 0;
-let ErrorCountLogDate = Date.now();
+// One pino logger per log type — each writes to its own file
+const logLogger = pino(path.join(logsDir, 'v-log.log'));
+const errorLogger = pino(path.join(logsDir, 'v-error.log'));
+const unityLogger = pino(path.join(logsDir, 'v-unity.log'));
 
-const getDateStamp = date => date.toLocaleString('sv').split(' ')[0];
+const loggers = {
+    [LOG_TYPES.LOG]: logLogger,
+    [LOG_TYPES.ERROR]: errorLogger,
+    [LOG_TYPES.EVENT]: logLogger,
+    [LOG_TYPES.FE_LOG]: unityLogger,
+};
 
-const getIndexName = (type, dateStamp) => {
-    const DateStamp = dateStamp ?? getDateStamp(new Date());
-    return 'v-' + type + '-' + DateStamp;
-}
-
-const catchErr = async (fn) => {
-    try {
-        await fn();
-    } catch (_e) {
-        if (++ErrorCount >= 16) {
-            ErrorCountLogDate = Date.now();
-            ErrorCount = 0;
-        }
-    }
-}
-
-const createLogIndex = async (dateStamp) => {
-    return ElasticSearch.indices.create({
-        index: getIndexName(LOG_TYPES.LOG, dateStamp),
-        mappings: {
-            dynamic: 'strict',
-            properties: LogSchema,
-        },
-        settings: {
-            refresh_interval: '3s',
-        }
+export const addDocument = (type, data) => {
+    if (!enableLogging) return;
+    const logger = loggers[type] || logLogger;
+    logger.info({
+        ...data,
+        type,
+        date: new Date().toISOString(),
     });
-}
+};
 
-const createErrorIndex = async (dateStamp) => {
-    return ElasticSearch.indices.create({
-        index: getIndexName(LOG_TYPES.ERROR, dateStamp),
-        mappings: {
-            dynamic: 'strict',
-            properties: ErrorSchema,
-        },
-        settings: {
-            refresh_interval: '3s',
-        }
+export const addUnityDocument = (data) => {
+    if (!enableLogging) return;
+    unityLogger.info({
+        ...data,
+        source: 'unity',
+        date: new Date().toISOString(),
     });
-}
-
-const dropErrorIndex = async (dateStamp) => {
-    return ElasticSearch.indices.delete({
-        index: getIndexName(LOG_TYPES.ERROR, dateStamp),
-    });
-}
-
-export const addDocument = async (type, data) => {
-    if (!enableESLogging) return;
-    await catchErr(async () => {
-        await ElasticSearch.index({
-            index: getIndexName(type),
-            document: {
-                ...data,
-                date: (new Date()).toISOString(),
-                type,
-            },
-            refresh: 'false',
-        });
-    });
-}
-
-export const createIndexes = async (forNextDay) => {
-    if (!enableESLogging) return;
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    const dateStamp = forNextDay? getDateStamp(date) : undefined;
-
-    await catchErr(async() => {
-        await createLogIndex(dateStamp);
-    });
-
-    await catchErr(async() => {
-        await createErrorIndex(dateStamp);
-    });
-}
-
-export const dropIndexes = async ({
-    logStamp,
-    errorStamp,
-}) => {
-    if (!enableESLogging) return;
-
-    let date = undefined;
-
-    date = new Date();
-    date.setDate(date.getDate() - LogsLifecycle);
-    const logsTimeStamp = logStamp ?? getDateStamp(date);
-
-    date = new Date();
-    date.setDate(date.getDate() - ErrorsLifecycle);
-    const errorsTimeStamp = errorStamp ?? getDateStamp(date);
-
-    await catchErr(async () => {
-        await dropLogIndex(logsTimeStamp);
-    });
-    await catchErr(async () => {
-        await dropErrorIndex(errorsTimeStamp);
-    });
-}
+};

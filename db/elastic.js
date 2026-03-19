@@ -1,3 +1,4 @@
+
 import { Client } from '@elastic/elasticsearch';
 import config from '../constants/config.js';
 const { ES_CA, ES_PASSWORD, ES_URL, ES_USERNAME } = config;
@@ -9,10 +10,10 @@ const client = enableESLogging ? new Client({
         username: ES_USERNAME,
         password: ES_PASSWORD
     },
-    tls: {
-        ca: ES_CA,
-        rejectUnauthorized: false
-    }
+    // tls: {
+    //     ca: ES_CA,
+    //     rejectUnauthorized: false
+    // }
 }): {};
 
 const connect = async () => {

@@ -57,5 +57,4 @@ export const LOG_TYPES = {
     EVENT: 'event',
     FE_LOG: 'felog',
 };
-// here 
-export const enableESLogging = false;
+export const enableLogging = true;

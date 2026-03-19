@@ -7,6 +7,7 @@ const log = ({ data, key1, key2, text1, text2, metric }) => {
 
 //   const strin
   return addDocument(LOG_TYPES.LOG, {
+    source: "server",
     data,
     key1,
     key2,
@@ -21,6 +22,7 @@ const error = ({ error, message, stack, key1, key2, text1, text2 }) => {
   const txnId = asyncLocalStorage.getStore();
 
   return addDocument(LOG_TYPES.ERROR, {
+    source: "server",
     error,
     message,
     stack,
