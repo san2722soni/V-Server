@@ -999,11 +999,47 @@ async function createServer(gameId, activeBuild, lobbyId) {
 
     const userData = `#!/bin/bash
 IP=$(curl -s ifconfig.me)
-sudo apt update
-sudo apt install -y unzip
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
+
+# --- Filebeat config Correct yml file ---
+cat <<FBEOF | sudo tee /etc/filebeat/filebeat.yml
+filebeat.inputs:
+  - type: filestream
+    id: unity-game-logs
+    enabled: true
+    paths:
+      - /home/ubuntu/game-server/logs/v.log
+    prospector.scanner.fingerprint.enabled: false
+    fields:
+      index_type: "unity"
+      game_id: ${gameId}
+      lobby_id: ${lobbyId}
+      server_ip: $IP
+    fields_under_root: false
+
+  - type: filestream
+    id: unity-game-errors
+    enabled: true
+    paths:
+      - /home/ubuntu/game-server/logs/v.error
+    prospector.scanner.fingerprint.enabled: false
+    fields:
+      index_type: "unity"
+      game_id: ${gameId}
+      lobby_id: ${lobbyId}
+      server_ip: $IP
+    fields_under_root: false
+
+output.elasticsearch:
+  hosts: ["https://es.olivs.in:443"]
+  username: "elastic"
+  password: "rG7iXjae9rxPiradoJDXf9pk"
+  ssl.verification_mode: none
+  index: "v-unity-%{+yyyy.MM.dd}"
+
+logging.level: info
+FBEOF
+
+sudo systemctl restart filebeat
 
 mkdir -p /home/ubuntu/game-server
 chown ubuntu:ubuntu /home/ubuntu/game-server
@@ -1015,7 +1051,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
     const parsedUserData = Buffer.from(userData).toString("base64");
 
     const command = new RunInstancesCommand({
-      ImageId: "ami-02b8269d5e85954ef",
+      ImageId: "ami-0b37017a19269987f",
       InstanceType: "c6a.xlarge",
       KeyName: "project-v-keys",
       IamInstanceProfile: {
