@@ -57,4 +57,4 @@ export const LOG_TYPES = {
     EVENT: 'event',
     FE_LOG: 'felog',
 };
-export const enableLogging = process.env.NODE_ENV === 'production';
+export const enableLogging = process.env.NODE_ENV === 'production' ? true : false;
