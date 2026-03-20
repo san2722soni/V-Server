@@ -11,17 +11,23 @@ const redisClient = redis.client;
 const getGameSessions = async () => {
   try {
     // Fetch from Redis and MongoDB in parallel
+    // modelWrapper returns plain arrays — no .sort()/.limit()/.lean() chaining
     const [redisLobbies, redisGames, mongoLobbies, mongoGames] =
       await Promise.all([
         getRedisLobbies(),
         getRedisActiveGames(),
-        Lobby.find({}).sort({ createdAt: -1 }).limit(50).lean(),
-        CustomGame.find({})
-          .sort({ createdAt: -1 })
-          .limit(50)
-          .select("-saltKey -teamTrees -ec2InstanceIds")
-          .lean(),
+        Lobby.find({}),
+        CustomGame.findAndSelect(
+          {},
+          "-saltKey -teamTrees -ec2InstanceIds"
+        ),
       ]);
+
+    // Sort by newest first and limit in JS
+    mongoLobbies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    mongoGames.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const recentLobbies = mongoLobbies.slice(0, 50);
+    const recentGames = mongoGames.slice(0, 50);
 
     // Build active lobbies list (from Redis — these are waiting lobbies)
     const activeLobbies = redisLobbies.map((lobby) => ({
@@ -57,7 +63,7 @@ const getGameSessions = async () => {
     });
 
     // Build completed games list (from MongoDB)
-    const completedGames = mongoGames
+    const completedGames = recentGames
       .filter((g) => g.completed)
       .slice(0, 20)
       .map((game) => {
@@ -84,7 +90,7 @@ const getGameSessions = async () => {
       });
 
     // Build in-progress lobbies (from MongoDB — lobbies with inGame: true but game not completed)
-    const inGameLobbies = mongoLobbies
+    const inGameLobbies = recentLobbies
       .filter((l) => l.inGame && !l.gameCompleted)
       .map((lobby) => ({
         lobbyId: lobby.lobbyId,
