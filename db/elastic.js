@@ -1,10 +1,11 @@
 
 import { Client } from '@elastic/elasticsearch';
 import config from '../constants/config.js';
-const { ES_CA, ES_PASSWORD, ES_URL, ES_USERNAME } = config;
-import { enableESLogging } from '../constants/index.js'
+import { LOG_MODE } from '../constants/index.js'
 
-const client = enableESLogging ? new Client({
+const { ES_CA, ES_PASSWORD, ES_URL, ES_USERNAME } = config;
+
+const client = LOG_MODE === 'elastic' ? new Client({
     node: ES_URL,
     auth: {
         username: ES_USERNAME,
@@ -17,7 +18,7 @@ const client = enableESLogging ? new Client({
 }): {};
 
 const connect = async () => {
-    if (!enableESLogging) return;
+    if (LOG_MODE !== 'elastic') return;
     try {
         await client.ping();
     } catch (error) {

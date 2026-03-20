@@ -1,5 +1,5 @@
 import Lobby from "../../service/game/lobby.js";
-import { requireUser, wrapper } from "../middleware.js";
+import { requireServer, requireUser, wrapper } from "../middleware.js";
 
 export default async function lobbyRoutes(fastify) {
   // Remove the global hook and add requireUser to each route individually
@@ -35,15 +35,16 @@ export default async function lobbyRoutes(fastify) {
     wrapper(Lobby.getActiveGame)
   );
 
-  // mockLobbyData - no requireUser
-  fastify.post("/mockLobbyData", wrapper(Lobby.mockLobbyData));
+  // mockLobbyData - server-to-server
+  fastify.post("/mockLobbyData", { preHandler: requireServer }, wrapper(Lobby.mockLobbyData));
 
-  // /getServerLobbyStatus - no requireUser
+  // /getServerLobbyStatus - server-to-server
   fastify.post(
     "/getServerLobbyStatus",
+    { preHandler: requireServer },
     wrapper(Lobby.getServerLobbyStatus)
   );
 
-  // serverStarted - with requireUser
-  fastify.post("/serverStarted", wrapper(Lobby.serverStarted));
+  // serverStarted - server-to-server
+  fastify.post("/serverStarted", { preHandler: requireServer }, wrapper(Lobby.serverStarted));
 }

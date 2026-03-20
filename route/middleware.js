@@ -5,6 +5,7 @@ import {
   JWT_SECRET_KEY,
 } from "../constants/index.js";
 
+import config from "../constants/config.js";
 import asyncLocalStorage from "../util/asyncStorage.js";
 import { randomId } from "../util/index.js";
 import LogModule from "../service/log/index.js";
@@ -104,6 +105,16 @@ export const requireUser = async (request, reply) => {
 export const requireVcmUser = async (request, reply) => {
   if (!request.userData?.isAdmin && !request.userData?.isVcmUser) {
     return reply.code(403).send({ message: "Vcm User access required" });
+  }
+};
+
+/* ================================================================
+   SERVER-TO-SERVER GUARD
+================================================================ */
+export const requireServer = async (request, reply) => {
+  const serverSecret = request.headers['x-server-secret'];
+  if (!serverSecret || serverSecret !== config.SERVER_SECRET) {
+    return reply.code(403).send({ message: "Invalid server secret" });
   }
 };
 

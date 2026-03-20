@@ -1,4 +1,4 @@
-import { requireAdmin, wrapper } from "../middleware.js";
+import { requireAdmin, requireServer, wrapper } from "../middleware.js";
 import Build from "../../service/dashboard/build.js";
 
 export default async function builds(fastify) {
@@ -33,6 +33,7 @@ export default async function builds(fastify) {
   // Build status callback (called by build server via curl)
   fastify.post(
     "/buildStatus",
+    { preHandler: requireServer },
     wrapper(Build.buildStatus)
   );
 

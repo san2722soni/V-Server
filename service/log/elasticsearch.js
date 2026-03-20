@@ -1,38 +1,45 @@
-import { LOG_TYPES, enableLogging } from '../../constants/index.js';
-import pino from 'pino';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { LOG_TYPES, LOG_MODE } from '../../constants/index.js';
+import elasticDb from '../../db/elastic.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const logsDir = path.join(__dirname, '../../logs');
-
-// One pino logger per log type — each writes to its own file
-const logLogger = pino(path.join(logsDir, 'v-log.log'));
-const errorLogger = pino(path.join(logsDir, 'v-error.log'));
-const unityLogger = pino(path.join(logsDir, 'v-unity.log'));
-
-const loggers = {
-    [LOG_TYPES.LOG]: logLogger,
-    [LOG_TYPES.ERROR]: errorLogger,
-    [LOG_TYPES.EVENT]: logLogger,
-    [LOG_TYPES.FE_LOG]: unityLogger,
+// ---------- CONSOLE logger (development) ----------
+const consoleLog = (type, data) => {
+    const timestamp = new Date().toISOString();
+    const prefix = `[${timestamp}] [${type.toUpperCase()}]`;
+    if (type === LOG_TYPES.ERROR) {
+        console.error(prefix, data);
+    } else {
+        console.log(prefix, data);
+    }
 };
 
+// ---------- ELASTIC logger (production) ----------
+const elasticLog = async (type, data) => {
+    try {
+        const index = type === LOG_TYPES.FE_LOG ? 'v-unity' : type === LOG_TYPES.ERROR ? 'v-error' : 'v-log';
+        await elasticDb.client.index({
+            index,
+            document: {
+                ...data,
+                type,
+                date: new Date().toISOString(),
+            },
+        });
+    } catch (err) {
+        console.error('[ElasticLog] Failed to index document:', err.message);
+    }
+};
+
+// ---------- Public API ----------
 export const addDocument = (type, data) => {
-    if (!enableLogging) return;
-    const logger = loggers[type] || logLogger;
-    logger.info({
-        ...data,
-        type,
-        date: new Date().toISOString(),
-    });
+    const payload = { ...data, type, date: new Date().toISOString() };
+
+    if (LOG_MODE === 'elastic') return elasticLog(type, data);
+    return consoleLog(type, payload);
 };
 
 export const addUnityDocument = (data) => {
-    if (!enableLogging) return;
-    unityLogger.info({
-        ...data,
-        source: 'unity',
-        date: new Date().toISOString(),
-    });
+    const payload = { ...data, source: 'unity', date: new Date().toISOString() };
+
+    if (LOG_MODE === 'elastic') return elasticLog(LOG_TYPES.FE_LOG, payload);
+    return consoleLog('unity', payload);
 };

@@ -12,7 +12,7 @@ export const ApiResponseLogBlackList = [
 
 export const MATCH_MAKING_LIMIT = 2;
 
-export const JWT_SECRET_KEY = 'code2025#'
+export const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 export const REFRESH_TOKEN_SECRET = 1000 * 60 * 60 * 24 * 180;
 
@@ -44,8 +44,7 @@ export const PERMISSIONS = {
 
 export const REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 180;
 
-export const ACCESS_TOKEN_EXPIRE_TIME_IN_SECS = 60 * 60 * 24;
-// export const ACCESS_TOKEN_EXPIRE_TIME_IN_SECS = 20;
+export const ACCESS_TOKEN_EXPIRE_TIME_IN_SECS = 60 * 15; // 15 minutes
 
 export const FCM_EVENTS = {
     HELP_CHAT: 'helpchat',
@@ -57,4 +56,6 @@ export const LOG_TYPES = {
     EVENT: 'event',
     FE_LOG: 'felog',
 };
-export const enableLogging = process.env.NODE_ENV === 'production' ? true : false;
+// 'production' → elasticsearch, otherwise → console
+export const LOG_MODE = process.env.NODE_ENV === 'production' ? 'elastic' : 'console';
+export const enableLogging = true;

@@ -1051,7 +1051,8 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
     const parsedUserData = Buffer.from(userData).toString("base64");
 
     const command = new RunInstancesCommand({
-      ImageId: "ami-0b37017a19269987f",
+      // ImageId: "ami-0b37017a19269987f",
+      ImageId: "ami-0aaf39f63c956a52c",
       InstanceType: "c6a.xlarge",
       KeyName: "project-v-keys",
       IamInstanceProfile: {

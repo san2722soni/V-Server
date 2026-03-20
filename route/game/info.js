@@ -1,5 +1,5 @@
 import InfoService from '../../service/game/info.js';
-import { requireAdmin, requireDeveloper, requireUser, wrapper } from '../middleware.js';
+import { requireServer, requireUser, wrapper } from '../middleware.js';
 
 export default async function Info(fastify) {
     fastify.get(
@@ -22,5 +22,5 @@ export default async function Info(fastify) {
         { preHandler: [requireUser] },
         wrapper(InfoService.getGlobalConfig)
     );
-    fastify.post('/serverData', wrapper(InfoService.serverData));
+    fastify.post('/serverData', { preHandler: requireServer }, wrapper(InfoService.serverData));
 }

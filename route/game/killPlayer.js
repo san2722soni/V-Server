@@ -1,6 +1,6 @@
 import killPlayer from "../../service/game/killPlayer.js";
-import { wrapper } from "../middleware.js";
+import { requireServer, wrapper } from "../middleware.js";
 
 export default async function killPlayerRoutes(fastify){
-    fastify.post('/killPlayer', wrapper(killPlayer.Kill));
+    fastify.post('/killPlayer', { preHandler: requireServer }, wrapper(killPlayer.Kill));
 }

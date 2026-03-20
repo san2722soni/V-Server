@@ -28,6 +28,7 @@ const config = {
   UNITY_SERVER_IP: process.env.UNITY_SERVER_IP,
   UNITY_BUILD_SERVER_INSTANCE_ID: process.env.UNITY_BUILD_SERVER_INSTANCE_ID,
   CLOUDFRONT_URL: process.env.CLOUDFRONT_URL,
+  SERVER_SECRET:process.env.SERVER_SECRET
 };
 
 export default config;
