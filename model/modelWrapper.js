@@ -1,10 +1,18 @@
 import LogModule from "../service/log/index.js";
 import asyncLocalStorage from "../util/asyncStorage.js";
 
+const MAX_LOG_SIZE = 8000; // max chars for the data field
+
+const truncate = (obj) => {
+  const str = JSON.stringify(obj);
+  if (str.length <= MAX_LOG_SIZE) return str;
+  return str.slice(0, MAX_LOG_SIZE) + `...[truncated ${str.length - MAX_LOG_SIZE} chars]`;
+};
+
 const log = (data, key2, metric) => {
   const txnId = asyncLocalStorage.getStore();
   LogModule.log({
-    data: JSON.stringify(data),
+    data: truncate(data),
     key1: "mongoQueries",
     key2,
     txnId,

@@ -21,11 +21,25 @@ const loggers = {
     [LOG_TYPES.FE_LOG]: unityLogger,
 };
 
+const MAX_FIELD_SIZE = 10000; // max chars per string field
+
+const safeData = (data) => {
+    const out = {};
+    for (const [key, value] of Object.entries(data)) {
+        if (typeof value === 'string' && value.length > MAX_FIELD_SIZE) {
+            out[key] = value.slice(0, MAX_FIELD_SIZE) + `...[truncated]`;
+        } else {
+            out[key] = value;
+        }
+    }
+    return out;
+};
+
 export const addDocument = (type, data) => {
     if (!enableLogging) return;
     const logger = loggers[type] || logLogger;
     logger.info({
-        ...data,
+        ...safeData(data),
         type,
         date: new Date().toISOString(),
     });
