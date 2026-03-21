@@ -79,7 +79,7 @@ const findOneAndSelect = (Model) => async (data, select, session) => {
   const promise = session
     ? Model.findOne(data).select(select).session(session)
     : Model.findOne(data).select(select);
-  const result = promise;
+  const result = await promise;
   log(
     { data, select, result },
     Model.modelName + ".findOneAndSelect",

@@ -69,16 +69,18 @@ const verifyOtp = async (data) => {
 
     const otpObject = await Otp.findOne({ email });
 
-    if ((!email || otp != "1247") && (!otpObject || otp != otpObject.value)) {
+    const isProduction = process.env.NODE_ENV === "production";
+    const bypassOtp = !isProduction && otp === "1247";
+
+    if (!bypassOtp && (!otpObject || otp !== otpObject.value)) {
       LogModule.error({
         key1: "verifyOtp",
         key2: "invalid_otp",
         text1: "Invalid OTP provided",
         text2: `Email: ${email}`,
         error: "OTP validation failed",
-        stack: error.stack
       });
-      throw Error("Invalid email or otp");
+      throw new Error("Invalid email or otp");
     }
 
     await Otp.deleteOne({ email });

@@ -84,7 +84,6 @@ export const parseAppConfig = async (request, reply) => {
 ================================================================ */
 
 export const requireAdmin = async (request, reply) => {
-  console.log("Request User Data:", request.userData);
   if (!request.userData?.isAdmin) {
     return reply.code(403).send({ message: "Admin access required" });
   }

@@ -10,11 +10,10 @@ const Schema = new mongoose.Schema({
     value: {
         type: String,
         required: true,
-        unique: true,
     },
     expireAt: {
         type: Date,
-        default: Date.now(),
+        default: Date.now,
         expires: 600,
     },
 });

@@ -61,7 +61,7 @@ async function stopServer(instanceIds) {
       text1: "EC2 server termination failed",
       text2: `Instance IDs: ${instanceIds.join(", ")}`,
       error: err.message,
-      stack: error.stack,
+      stack: err.stack,
     });
     throw err;
   }

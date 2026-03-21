@@ -22,7 +22,7 @@ export default async function globalConfigRoutes(fastify) {
         { preHandler: requireAdmin },
         wrapper(GlobalConfig.deleteConfig)
     );
-    fastify.delete(
+    fastify.get(
         '/all',
         { preHandler: requireAdmin },
         wrapper(GlobalConfig.getAll)

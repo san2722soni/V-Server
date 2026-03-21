@@ -34,7 +34,7 @@ const login = async (data) => {
     const isProduction = process.env.NODE_ENV === "production";
 
     // In non-production environment, allow bypassing  OTP with a fixed vale for easier testing
-    const OTP = isProduction ? generateOtp() :  1247;
+    const OTP = isProduction ? generateOtp() : "1247";
     await DeveloperOtp.deleteOne({ email });
     await DeveloperOtp.create({ email, value: OTP });
 
@@ -101,9 +101,9 @@ const verifyDeveloper = async (data) => {
     const otpObject = await DeveloperOtp.findOne({ email });
 
     const isProduction = process.env.NODE_ENV === "production";
-    const bypassOtp = !isProduction && otp == "1247";
+    const bypassOtp = !isProduction && otp === "1247";
 
-    if (!bypassOtp && (!otpObject || otp != otpObject.value)) {
+    if (!bypassOtp && (!otpObject || otp !== otpObject.value)) {
       LogModule.error({
         key1: "verify_developer",
         key2: "invalid_otp",

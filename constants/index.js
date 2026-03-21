@@ -14,8 +14,6 @@ export const MATCH_MAKING_LIMIT = 2;
 
 export const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
-export const REFRESH_TOKEN_SECRET = 1000 * 60 * 60 * 24 * 180;
-
 export const GENDER = {
     MALE: 'Male',
     FEMALE: 'Female',
