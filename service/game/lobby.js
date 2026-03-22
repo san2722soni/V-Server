@@ -1066,7 +1066,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
             Encrypted: false,
             DeleteOnTermination: true,
             Iops: 3000,
-            SnapshotId: "snap-02aec5d73c95cb35b",
+            SnapshotId: "snap-0eec2b33d0cbe4e56",
             VolumeSize: 8,
             VolumeType: "gp3",
             Throughput: 125,
