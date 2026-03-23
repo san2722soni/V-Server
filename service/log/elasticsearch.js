@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const isProduction = LOG_MODE === 'elastic';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const logsDir = path.join(__dirname, '../../logs');
+const logsDir = isProduction ? '/home/ubuntu/logs' : path.join(__dirname, '../../logs');
 
 // Production: Pino writes to NDJSON files → Filebeat ships to Elasticsearch
 // Development: Pino writes to stdout (console)

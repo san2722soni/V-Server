@@ -1055,7 +1055,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
     const parsedUserData = Buffer.from(userData).toString("base64");
 
     const command = new RunInstancesCommand({
-      ImageId: "ami-0d23e74edb97ddb33",
+      ImageId: "ami-08304493703daaefc",
       InstanceType: "c6a.xlarge",
       KeyName: "project-v-keys",
       IamInstanceProfile: {
@@ -1069,7 +1069,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
             Encrypted: false,
             DeleteOnTermination: true,
             Iops: 3000,
-            SnapshotId: "snap-0c2ac11da41f5bbb1",
+            SnapshotId: "snap-03d3e7c474244dd04",
             VolumeSize: 8,
             VolumeType: "gp3",
             Throughput: 125,

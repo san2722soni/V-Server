@@ -7,7 +7,7 @@ filebeat.inputs:
     id: v-server-logs
     enabled: true
     paths:
-      - f:/V_WORK/V-Server/logs/v-log.log
+      - /home/ubuntu/logs/v-log.log
     prospector.scanner.fingerprint.enabled: false
     parsers:
       - ndjson:
@@ -22,7 +22,7 @@ filebeat.inputs:
     id: v-server-errors
     enabled: true
     paths:
-      - f:/V_WORK/V-Server/logs/v-error.log
+      - /home/ubuntu/logs/v-error.log
     prospector.scanner.fingerprint.enabled: false
     parsers:
       - ndjson:
@@ -37,7 +37,7 @@ filebeat.inputs:
     id: v-unity-logs
     enabled: true
     paths:
-      - f:/V_WORK/V-Server/logs/v-unity.log
+      - /home/ubuntu/logs/v-unity.log
     prospector.scanner.fingerprint.enabled: false
     parsers:
       - ndjson:
@@ -71,6 +71,6 @@ output.elasticsearch:
 logging.level: info
 logging.to_files: true
 logging.files:
-  path: f:/V_WORK/V-Server/logs/filebeat
+  path: /home/ubuntu/logs/filebeat
   name: filebeat.log
   keepfiles: 3
