@@ -1052,7 +1052,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
 
     const command = new RunInstancesCommand({
       // ImageId: "ami-0b37017a19269987f",
-      ImageId: "ami-0aaf39f63c956a52c",
+      ImageId: "ami-095aa080b3025ce47",
       InstanceType: "c6a.xlarge",
       KeyName: "project-v-keys",
       IamInstanceProfile: {
@@ -1066,7 +1066,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
             Encrypted: false,
             DeleteOnTermination: true,
             Iops: 3000,
-            SnapshotId: "snap-0eec2b33d0cbe4e56",
+            SnapshotId: "snap-0d0fb8c2198a73d37",
             VolumeSize: 8,
             VolumeType: "gp3",
             Throughput: 125,
