@@ -1,30 +1,30 @@
 import Character from '../../service/entity/character.js';
-import { requireAdmin, wrapper } from "../middleware.js";
+import { requireDeveloper, requireUser, wrapper } from "../middleware.js";
 
 export default async function characterRoutes(fastify) {
     fastify.get(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(Character.getById)
     );
     fastify.post(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Character.create)
     );
     fastify.put(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Character.update)
     );
     fastify.delete(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Character.deleteCharacter)
     );
     fastify.get(
         '/allActive',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(() => Character.getAllCharacters({ isActive: true }))
     );
 }

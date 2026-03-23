@@ -1,30 +1,30 @@
 import Inventory from '../../service/entity/inventory.js';
-import { requireAdmin, wrapper } from "../middleware.js";
+import { requireDeveloper, requireUser, wrapper } from "../middleware.js";
 
 export default async function inventoryRoutes(fastify) {
     fastify.get(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(Inventory.getById)
     );
     fastify.post(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Inventory.create)
     );
     fastify.put(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Inventory.update)
     );
     fastify.delete(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Inventory.deleteInventory)
     );
     fastify.get(
         '/allActive',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(() => Inventory.getAllInventory({ isActive: true }))
     );
 }

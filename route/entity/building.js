@@ -1,30 +1,30 @@
 import Building from '../../service/entity/building.js';
-import { requireAdmin, wrapper } from "../middleware.js";
+import { requireAdmin, requireDeveloper, requireUser, wrapper } from "../middleware.js";
 
 export default async function buildingRoutes(fastify) {
     fastify.get(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(Building.getById)
     );
     fastify.post(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Building.create)
     );
     fastify.put(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Building.update)
     );
     fastify.delete(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(Building.deleteBuilding)
     );
     fastify.get(
         '/allActive',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(() => Building.getAllBuildings({ isActive: true }))
     );
 }

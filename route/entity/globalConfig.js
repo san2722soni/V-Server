@@ -1,30 +1,30 @@
 import GlobalConfig from '../../service/entity/globalConfig.js';
-import { requireAdmin, wrapper } from "../middleware.js";
+import { requireDeveloper, requireUser,  wrapper } from "../middleware.js";
 
 export default async function globalConfigRoutes(fastify) {
     fastify.get(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(GlobalConfig.getById)
     );
     fastify.post(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(GlobalConfig.create)
     );
     fastify.put(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(GlobalConfig.update)
     );
     fastify.delete(
         '/',
-        { preHandler: requireAdmin },
+        { preHandler: requireDeveloper },
         wrapper(GlobalConfig.deleteConfig)
     );
     fastify.get(
         '/all',
-        { preHandler: requireAdmin },
+        { preHandler: requireUser },
         wrapper(GlobalConfig.getAll)
     );
 }

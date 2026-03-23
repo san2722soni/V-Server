@@ -96,7 +96,7 @@ export const requireDeveloper = async (request, reply) => {
 };
 
 export const requireUser = async (request, reply) => {
-  if (!request.userData?.isAdmin && !request.userData?.isUser) {
+  if (!request.userData?.isAdmin &&  !request.userData?.isDeveloper && !request.userData?.isUser) {
     return reply.code(403).send({ message: "User access required" });
   }
 };
