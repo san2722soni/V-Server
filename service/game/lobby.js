@@ -1011,8 +1011,13 @@ filebeat.inputs:
     paths:
       - /home/ubuntu/game-server/logs/v.log
     prospector.scanner.fingerprint.enabled: false
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          overwrite_keys: true
+          message_key: message
     fields:
-      index_type: "unity"
+      index_type: "unity-server"
       game_id: ${gameId}
       lobby_id: ${lobbyId}
       server_ip: $IP
@@ -1024,8 +1029,13 @@ filebeat.inputs:
     paths:
       - /home/ubuntu/game-server/logs/v.error
     prospector.scanner.fingerprint.enabled: false
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          overwrite_keys: true
+          message_key: message
     fields:
-      index_type: "unity"
+      index_type: "unity-server"
       game_id: ${gameId}
       lobby_id: ${lobbyId}
       server_ip: $IP
@@ -1036,11 +1046,14 @@ output.elasticsearch:
   username: "elastic"
   password: "${config.ES_PASSWORD}"
   ssl.verification_mode: none
-  index: "v-unity-%{+yyyy.MM.dd}"
+  indices:
+    - index: "v-unity-server-%{+yyyy.MM.dd}"
+      when.equals:
+        fields.index_type: "unity-server"
   allow_older_versions: true
 
-setup.template.name: "v-unity"
-setup.template.pattern: "v-unity-*"
+setup.template.name: "v-unity-server"
+setup.template.pattern: "v-unity-server-*"
 setup.ilm.enabled: false
 
 logging.level: info
