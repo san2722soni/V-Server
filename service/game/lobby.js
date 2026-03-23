@@ -996,11 +996,13 @@ async function createServer(gameId, activeBuild, lobbyId) {
         gameId: gameId,
       };
     }
-
-    const userData = `#!/bin/bash
+const userData = `#!/bin/bash
 IP=$(curl -s ifconfig.me)
 
-# --- Filebeat config Correct yml file ---
+mkdir -p /home/ubuntu/game-server/logs
+chown -R ubuntu:ubuntu /home/ubuntu/game-server
+
+# --- Filebeat config ---
 cat <<FBEOF | sudo tee /etc/filebeat/filebeat.yml
 filebeat.inputs:
   - type: filestream
@@ -1032,17 +1034,19 @@ filebeat.inputs:
 output.elasticsearch:
   hosts: ["https://es.olivs.in:443"]
   username: "elastic"
-  password: "rG7iXjae9rxPiradoJDXf9pk"
+  password: "${config.ES_PASSWORD}"
   ssl.verification_mode: none
   index: "v-unity-%{+yyyy.MM.dd}"
+  allow_older_versions: true
+
+setup.template.name: "v-unity"
+setup.template.pattern: "v-unity-*"
+setup.ilm.enabled: false
 
 logging.level: info
 FBEOF
 
 sudo systemctl restart filebeat
-
-mkdir -p /home/ubuntu/game-server
-chown ubuntu:ubuntu /home/ubuntu/game-server
 
 sudo -u ubuntu bash -c 'cd /home/ubuntu/game-server && aws s3 sync s3://project-v-unity-builds/${activeBuild} . && chmod +x ./server.x86_64'
 
@@ -1051,8 +1055,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
     const parsedUserData = Buffer.from(userData).toString("base64");
 
     const command = new RunInstancesCommand({
-      // ImageId: "ami-0b37017a19269987f",
-      ImageId: "ami-095aa080b3025ce47",
+      ImageId: "ami-0d23e74edb97ddb33",
       InstanceType: "c6a.xlarge",
       KeyName: "project-v-keys",
       IamInstanceProfile: {
@@ -1066,7 +1069,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
             Encrypted: false,
             DeleteOnTermination: true,
             Iops: 3000,
-            SnapshotId: "snap-0d0fb8c2198a73d37",
+            SnapshotId: "snap-0c2ac11da41f5bbb1",
             VolumeSize: 8,
             VolumeType: "gp3",
             Throughput: 125,
