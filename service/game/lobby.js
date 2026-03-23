@@ -1052,8 +1052,7 @@ output.elasticsearch:
         fields.index_type: "unity-server"
   allow_older_versions: true
 
-setup.template.name: "v-unity-server"
-setup.template.pattern: "v-unity-server-*"
+setup.template.enabled: false
 setup.ilm.enabled: false
 
 logging.level: info
