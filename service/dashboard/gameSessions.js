@@ -1,6 +1,6 @@
 import redis from "../../db/redis.js";
 import Lobby from "../../model/Lobby.js";
-import CustomGame from "../../model/CustomGame.js";
+import Game from "../../model/Game.js";
 import LogModule from "../log/index.js";
 
 const redisClient = redis.client;
@@ -17,7 +17,7 @@ const getGameSessions = async () => {
         getRedisLobbies(),
         getRedisActiveGames(),
         Lobby.find({}),
-        CustomGame.findAndSelect(
+        Game.findAndSelect(
           {},
           "-saltKey -teamTrees -ec2InstanceIds"
         ),
@@ -187,7 +187,9 @@ async function getRedisLobbies() {
 }
 
 /**
- * Fetch all active games from Redis
+ * Fetch all active games from Redis.
+ * Cross-checks with MongoDB to filter out orphaned keys
+ * (games that are already completed or don't exist).
  */
 async function getRedisActiveGames() {
   try {
@@ -200,8 +202,24 @@ async function getRedisActiveGames() {
       if (raw) {
         try {
           const data = JSON.parse(raw);
+          const gameId = data.gameId || key.replace("currentGame:", "");
+
+          // Cross-check: skip if game is already completed in MongoDB
+          let mongoGame = null;
+          try {
+            mongoGame = await Game.findById(gameId);
+          } catch {
+            // invalid ID or DB error — skip this key
+          }
+
+          if (mongoGame?.completed) {
+            // Orphaned key — clean it up in the background
+            redisClient.del(key).catch(() => {});
+            continue;
+          }
+
           games.push({
-            gameId: data.gameId || key.replace("currentGame:", ""),
+            gameId,
             lobbyId: data.lobbyId,
             serverIP: data.serverIP,
             totalPlayers: data.totalPlayers,

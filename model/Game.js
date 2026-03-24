@@ -1,29 +1,78 @@
-import mongoose from 'mongoose';
-import modelWrapper from './modelWrapper.js';
+import mongoose from "mongoose";
+import modelWrapper from "./modelWrapper.js";
 
-const gameSchema = new mongoose.Schema({
+const gameSchema = new mongoose.Schema(
+  {
     saltKey: {
-        type: String,
+      type: String,
+    },
+    createdByLobby: {
+      type: String,
+    },
+    creatorId: {
+      type: String,
     },
     players: {
-        type: [{
-            userId: {
-                type: String,
-            },
-            secret: {
-                type: String,
-            },
-            characterId: {
-                type: String,
-            },
-            clientId: {
-                type: Number
-            }
-        }],
+      type: [
+        {
+          userId: {
+            type: String,
+          },
+          secret: {
+            type: String,
+          },
+          characterId: {
+            type: String,
+          },
+          clientId: {
+            type: Number,
+          },
+          team: {
+            type: String,
+            enum: ["A", "B"],
+            default: "A",
+          },
+          isBot: {
+            type: Boolean,
+            default: false,
+          },
+        },
+      ],
     },
-    serverIP:{
-        type: String,
-    }
-}, { timestamps: true });
+    teams: {
+      teamA: [
+        {
+          userId: String,
+          clientId: Number,
+        },
+      ],
+      teamB: [
+        {
+          userId: String,
+          clientId: Number,
+        },
+      ],
+    },
+    teamTrees: {
+      type: Object,
+      default: {},
+    },
+    totalPlayers: {
+      type: Number,
+      default: 0,
+    },
+    serverIP: {
+      type: String,
+    },
+    completed: {
+      type: Boolean,
+      default: false,
+    },
+    ec2InstanceIds: {
+      type: Object,
+    },
+  },
+  { timestamps: true }
+);
 
 export default modelWrapper(mongoose.model("Game", gameSchema));

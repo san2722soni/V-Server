@@ -5,7 +5,6 @@ import GlobalConfig from "../../model/GlobalConfig.js";
 import mongoose from "mongoose";
 import Game from "../../model/Game.js";
 import LogModule from "../../service/log/index.js";
-import CustomGame from "../../model/CustomGame.js";
 
 // return all characters
 const getActiveCharacters = async () => {
@@ -202,8 +201,7 @@ const serverData = async ({ id }) => {
       throw new Error("Invalid Game ID format");
     }
 
-    // TODO: handle for both, game and custom game
-    const allGames = await CustomGame.findOne({ _id: id });
+    const allGames = await Game.findOne({ _id: id });
     if (!allGames) {
       throw new Error("Game not found");
     }

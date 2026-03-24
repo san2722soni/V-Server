@@ -1,4 +1,4 @@
-import CustomGame from "../../model/CustomGame.js";
+import Game from "../../model/Game.js";
 import Lobby from "../../model/Lobby.js";
 import redisClient from "../../db/redis.js";
 import LogModule from "../../service/log/index.js";
@@ -85,7 +85,7 @@ const gameOver = async (data) => {
       return { success: false, message: "Game ID is required" };
     }
 
-    const currentGame = await CustomGame.findById(gameId);
+    const currentGame = await Game.findById(gameId);
     if (!currentGame) {
       return { success: false, message: "Game not found" };
     }
@@ -93,8 +93,8 @@ const gameOver = async (data) => {
     // 1️⃣ Remove from Redis cache
     await client.del(`currentGame:${gameId}`);
 
-    // 2️⃣ Mark CustomGame as completed
-    await CustomGame.findByIdAndUpdate(gameId, { completed: true });
+    // 2️⃣ Mark Game as completed
+    await Game.findByIdAndUpdate(gameId, { completed: true });
 
     // 3️⃣ Remove lastActive keys for all players
     if (currentGame.players?.length) {
@@ -126,7 +126,7 @@ const gameOver = async (data) => {
     ) {
       await stopServer(currentGame.ec2InstanceIds);
 
-      await CustomGame.findByIdAndUpdate(gameId, { ec2InstanceIds: [] });
+      await Game.findByIdAndUpdate(gameId, { ec2InstanceIds: [] });
 
       LogModule.log({
         key1: "gameOver",
@@ -146,7 +146,7 @@ const gameOver = async (data) => {
       text2: `Game ID: ${gameId}`,
     });
 
-    const finishedGame = await CustomGame.findById(gameId);
+    const finishedGame = await Game.findById(gameId);
 
     return {
       success: true,

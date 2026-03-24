@@ -1,4 +1,4 @@
-import CustomGame from "../../model/CustomGame.js";
+import Game from "../../model/Game.js";
 import LogModule from "../../service/log/index.js";
 
 async function gameData({ gameId, userData } = {}) {
@@ -14,12 +14,12 @@ async function gameData({ gameId, userData } = {}) {
       return { status: 400, message: "Game ID is required" };
     }
 
-    const game = await CustomGame.findById(gameId);
+    const game = await Game.findById(gameId);
     if (!game) {
       LogModule.error({
         key1: "gameData",
         key2: "game_find_failed",
-        text1: "Game not present in customGame collection",
+        text1: "Game not present in games collection",
         text2: `game: ${""}`,
       });
       return { status: 404, message: "Game not found" };

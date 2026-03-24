@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { EC2Client, TerminateInstancesCommand, DescribeInstancesCommand } from "@aws-sdk/client-ec2";
 import redisClient from '../db/redis.js';
-import CustomGame from "../model/CustomGame.js";
+import Game from "../model/Game.js";
 import Lobby from "../model/Lobby.js";
 import config from "../constants/config.js";
 import LogModule from "../service/log/index.js";
@@ -24,82 +24,86 @@ const cleanupStaleGameServers = async () => {
     try {
         const cutoff = new Date(Date.now() - GAME_MAX_DURATION_MS);
 
-        const staleGames = await CustomGame.find({
+        const staleGames = await Game.find({
             completed: false,
             createdAt: { $lt: cutoff },
         });
 
-        if (staleGames.length === 0) return;
-
-        LogModule.log({
-            key1: "cleanupStaleGameServers",
-            key2: "found",
-            text1: `Found ${staleGames.length} stale game(s)`,
-        });
-
-        for (const game of staleGames) {
-            const gameId = game._id.toString();
-
-            // Terminate EC2 instances
-            if (
-                process.env.NODE_ENV === "production" &&
-                game.ec2InstanceIds?.length > 0
-            ) {
-                try {
-                    const command = new TerminateInstancesCommand({
-                        InstanceIds: game.ec2InstanceIds,
-                    });
-                    await ec2Client.send(command);
-
-                    LogModule.log({
-                        key1: "cleanupStaleGameServers",
-                        key2: "ec2Terminated",
-                        text1: `Terminated EC2 for game ${gameId}`,
-                        text2: `Instances: ${game.ec2InstanceIds.join(", ")}`,
-                    });
-                } catch (ec2Error) {
-                    if (ec2Error.name === "InvalidInstanceID.NotFound") {
-                        LogModule.log({
-                            key1: "cleanupStaleGameServers",
-                            key2: "ec2AlreadyGone",
-                            text1: `EC2 instances already terminated for game ${gameId}`,
-                        });
-                    } else {
-                        throw ec2Error;
-                    }
-                }
-            }
-
-            // Remove from Redis
-            await client.del(`currentGame:${gameId}`);
-
-            // Remove player lastActive keys
-            if (game.players?.length) {
-                await Promise.all(
-                    game.players.map((p) => client.del(`lastActive:${p.userId}`))
-                );
-            }
-
-            // Mark game completed
-            await CustomGame.findByIdAndUpdate(gameId, {
-                completed: true,
-                ec2InstanceIds: [],
-            });
-
-            // Update lobby
-            if (game.createdByLobby) {
-                await Lobby.findOneAndUpdate(
-                    { lobbyId: game.createdByLobby },
-                    { inGame: false, gameCompleted: true }
-                );
-            }
-
+        if (staleGames.length > 0) {
             LogModule.log({
                 key1: "cleanupStaleGameServers",
-                key2: "cleaned",
-                text1: `Game ${gameId} cleaned up`,
+                key2: "found",
+                text1: `Found ${staleGames.length} stale game(s)`,
             });
+
+            for (const game of staleGames) {
+                const gameId = game._id.toString();
+
+                // Terminate EC2 instances
+                if (
+                    process.env.NODE_ENV === "production" &&
+                    game.ec2InstanceIds?.length > 0
+                ) {
+                    try {
+                        const command = new TerminateInstancesCommand({
+                            InstanceIds: game.ec2InstanceIds,
+                        });
+                        await ec2Client.send(command);
+
+                        LogModule.log({
+                            key1: "cleanupStaleGameServers",
+                            key2: "ec2Terminated",
+                            text1: `Terminated EC2 for game ${gameId}`,
+                            text2: `Instances: ${game.ec2InstanceIds.join(", ")}`,
+                        });
+                    } catch (ec2Error) {
+                        if (ec2Error.name === "InvalidInstanceID.NotFound") {
+                            LogModule.log({
+                                key1: "cleanupStaleGameServers",
+                                key2: "ec2AlreadyGone",
+                                text1: `EC2 instances already terminated for game ${gameId}`,
+                            });
+                        } else {
+                            throw ec2Error;
+                        }
+                    }
+                }
+
+                // Remove from Redis
+                await client.del(`currentGame:${gameId}`);
+
+                // Remove player lastActive keys
+                if (game.players?.length) {
+                    await Promise.all(
+                        game.players.map((p) => client.del(`lastActive:${p.userId}`))
+                    );
+                }
+
+                // Mark game completed
+                await Game.findByIdAndUpdate(gameId, {
+                    completed: true,
+                    ec2InstanceIds: [],
+                });
+
+                // Update lobby
+                if (game.createdByLobby) {
+                    await Lobby.findOneAndUpdate(
+                        { lobbyId: game.createdByLobby },
+                        { inGame: false, gameCompleted: true }
+                    );
+                }
+
+                LogModule.log({
+                    key1: "cleanupStaleGameServers",
+                    key2: "cleaned",
+                    text1: `Game ${gameId} cleaned up`,
+                });
+            }
         }
+
+        // Clean orphaned Redis keys — keys that exist in Redis but the game
+        // is already completed in MongoDB or doesn't exist at all
+        await cleanupOrphanedRedisKeys();
     } catch (error) {
         LogModule.error({
             key1: "cleanupStaleGameServers",
@@ -109,6 +113,57 @@ const cleanupStaleGameServers = async () => {
             stack: error.stack,
         });
         console.error("[CRON] Error cleaning up stale game servers:", error);
+    }
+};
+
+/**
+ * Remove Redis currentGame:* keys where the game is already completed
+ * in MongoDB or no longer exists. This catches keys that slipped through
+ * gameOver / scheduler due to crashes, restarts, or missing TTLs.
+ */
+const cleanupOrphanedRedisKeys = async () => {
+    try {
+        const keys = await client.keys("currentGame:*");
+        if (!keys || keys.length === 0) return;
+
+        let cleaned = 0;
+        for (const key of keys) {
+            const gameId = key.replace("currentGame:", "");
+
+            // Check if the game exists and is incomplete in MongoDB
+            let game = null;
+            try {
+                game = await Game.findById(gameId);
+            } catch {
+                // Invalid ObjectId or DB error — treat as orphan
+            }
+
+            const shouldDelete =
+                !game || // game doesn't exist in MongoDB at all
+                game.completed === true; // game already marked completed
+
+            if (shouldDelete) {
+                await client.del(key);
+                cleaned++;
+            }
+        }
+
+        if (cleaned > 0) {
+            LogModule.log({
+                key1: "cleanupOrphanedRedisKeys",
+                key2: "cleaned",
+                text1: `Removed ${cleaned} orphaned Redis game key(s)`,
+                text2: `Total keys checked: ${keys.length}`,
+            });
+        }
+    } catch (error) {
+        LogModule.error({
+            key1: "cleanupOrphanedRedisKeys",
+            key2: "error",
+            text1: "Orphaned Redis key cleanup failed",
+            error: error.message,
+            stack: error.stack,
+        });
     }
 };
 

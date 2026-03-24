@@ -88,14 +88,15 @@ const findAMatch = async ({ userData }) => {
         await client.lRem(QUEUE_KEY, 1, playerId);
       }
 
-      // Store current game in redis currentGame cache
+      // Store current game in redis currentGame cache (30 min TTL safety net)
       await client.set(
         `currentGame:${newGame._id.toString()}`,
         JSON.stringify({
           gameId: newGame._id.toString(),
           saltKey: newGame.saltKey,
           players: newGame.players,
-        })
+        }),
+        { EX: 30 * 60 }
       );
 
       LogModule.log({

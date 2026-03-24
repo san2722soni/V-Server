@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import redisClient from "../../db/redis.js";
-import Game from "../../model/Game.js";
 import LogModule from "../../service/log/index.js";
 
 const client = redisClient.client;

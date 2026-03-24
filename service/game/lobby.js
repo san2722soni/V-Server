@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/client-ec2";
 import redisClient from "../../db/redis.js";
 import Lobby from "../../model/Lobby.js";
-import CustomGame from "../../model/CustomGame.js";
+import Game from "../../model/Game.js";
 import { exec } from "child_process";
 import featureFlag from "../../service/dashboard/featureFlag.js";
 import Build from "../../model/Build.js";
@@ -72,9 +72,9 @@ const isUserInActiveGame = async (userId) => {
 };
 
 /* ----------------------------- HELPER: GET CUSTOM GAME WITH USER SECRET ----------------------------- */
-const getCustomGame = async (gameId, userId) => {
+const getGame = async (gameId, userId) => {
   try {
-    const game = await CustomGame.findById(gameId);
+    const game = await Game.findById(gameId);
     if (!game) {
       return null;
     }
@@ -109,7 +109,7 @@ const getCustomGame = async (gameId, userId) => {
     return gameData;
   } catch (err) {
     LogModule.error({
-      key1: "getCustomGame",
+      key1: "getGame",
       key2: "failed",
       text1: "Failed to get custom game",
       text2: `Game ID: ${gameId}, User ID: ${userId}`,
@@ -428,7 +428,7 @@ async function moveLobbyToMongoAndCreateGame(lobbyId, lobbyData) {
       }
     }
 
-    const newGame = await CustomGame.create({
+    const newGame = await Game.create({
       saltKey: generateSecret(32),
       createdByLobby: lobbyId,
       creatorId,
@@ -440,7 +440,7 @@ async function moveLobbyToMongoAndCreateGame(lobbyId, lobbyData) {
     const teamsData = dividePlayersIntoTeams(newGame.players);
 
     // Update game with team information and return updated document
-    const updatedGame = await CustomGame.findByIdAndUpdate(newGame._id, {
+    const updatedGame = await Game.findByIdAndUpdate(newGame._id, {
       teams: {
         teamA: teamsData.teamA,
         teamB: teamsData.teamB,
@@ -597,7 +597,7 @@ const startMatch = async ({ userData, lobbyId }) => {
 
     // Save EC2 instance IDs only in production
     if (process.env.NODE_ENV === "production" && unityServerResponse) {
-      await CustomGame.findByIdAndUpdate(newGame._id, {
+      await Game.findByIdAndUpdate(newGame._id, {
         ec2InstanceIds: unityServerResponse,
       });
     }
@@ -660,7 +660,7 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
     const mongoLobby = await Lobby.findOne({ lobbyId, inGame: true });
     if (mongoLobby) {
       // Game started - find the game data using helper function
-      const currentGame = await getCustomGame(mongoLobby.gameId, userId);
+      const currentGame = await getGame(mongoLobby.gameId, userId);
       if (currentGame) {
         const isPlayer = currentGame.players.some(
           (p) => String(p.userId) === String(userId)
@@ -1174,7 +1174,7 @@ const serverStarted = async (data) => {
     }
 
     // Find game by id and update
-    const currentGame = await CustomGame.findByIdAndUpdate(gameId, {
+    const currentGame = await Game.findByIdAndUpdate(gameId, {
       serverIP: ipAddress,
     });
 
@@ -1188,7 +1188,7 @@ const serverStarted = async (data) => {
       return { status: 404, message: "Game not found" };
     }
 
-    // Store game in Redis
+    // Store game in Redis (30 min TTL safety net)
     await client.set(
       `currentGame:${currentGame._id.toString()}`,
       JSON.stringify({
@@ -1201,7 +1201,8 @@ const serverStarted = async (data) => {
         totalPlayers: currentGame.totalPlayers,
         lobbyId: currentGame.createdByLobby,
         serverIP: ipAddress,
-      })
+      }),
+      { EX: 30 * 60 }
     );
 
     const activeGameStr = await client.get(
@@ -1482,7 +1483,7 @@ const getServerLobbyStatus = async ({ lobbyId }) => {
     /* -------------------------------------------------------------------------- */
     const mongoLobby = await Lobby.findOne({ lobbyId });
     if (mongoLobby && mongoLobby.gameId) {
-      const currentGame = await CustomGame.findById(mongoLobby.gameId);
+      const currentGame = await Game.findById(mongoLobby.gameId);
 
       if (currentGame) {
         LogModule.log({
@@ -1604,7 +1605,7 @@ const getActiveGame = async ({ userData }) => {
         // Check MongoDB in case match started but serverStarted hasn't fired yet
         const mongoLobby = await Lobby.findOne({ lobbyId, inGame: true });
         if (mongoLobby) {
-          const game = await CustomGame.findById(mongoLobby.gameId);
+          const game = await Game.findById(mongoLobby.gameId);
           const player = game?.players?.find((p) => String(p.userId) === String(userId));
           return {
             status: 200,
