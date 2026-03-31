@@ -81,7 +81,7 @@ const getGame = async (gameId, userId) => {
 
     // Find the requesting user's player data
     const userPlayer = game.players.find(
-      (p) => String(p.userId) === String(userId)
+      (p) => String(p.userId) === String(userId),
     );
 
     // Filter out secrets from all players
@@ -365,9 +365,15 @@ const joinLobby = async ({ userData, lobbyId }) => {
 
 // Get Character
 const getCharacterAndName = async (userId) => {
-  const result = await UserProfile.findAndSelect({ userId }, "characterId name");
+  const result = await UserProfile.findAndSelect(
+    { userId },
+    "characterId name",
+  );
   const profile = result?.[0];
-  return { characterId: profile?.characterId || null, name: profile?.name || null };
+  return {
+    characterId: profile?.characterId || null,
+    name: profile?.name || null,
+  };
 };
 
 /* ---------------------- MOVE LOBBY TO MONGO + CREATE GAME ---------------------- */
@@ -404,17 +410,21 @@ async function moveLobbyToMongoAndCreateGame(lobbyId, lobbyData) {
           clientId: i + 1,
           team: "A",
         };
-      })
+      }),
     );
 
     // Add filler bots if feature flag is enabled
-    const shouldSpawnBots = await featureFlag.getFeatureFlag("spawn_filler_bots");
+    const shouldSpawnBots =
+      await featureFlag.getFeatureFlag("spawn_filler_bots");
     if (shouldSpawnBots && players.length < 32) {
       const activeCharacters = await Character.find({ isActive: true });
       if (activeCharacters.length > 0) {
         const botsNeeded = 32 - players.length;
         for (let i = 0; i < botsNeeded; i++) {
-          const randomChar = activeCharacters[Math.floor(Math.random() * activeCharacters.length)];
+          const randomChar =
+            activeCharacters[
+              Math.floor(Math.random() * activeCharacters.length)
+            ];
           players.push({
             userId: "user_id",
             name: `Bot_${i + 1}`,
@@ -488,16 +498,18 @@ const startMatch = async ({ userData, lobbyId }) => {
   }
 
   // Check if game start is allowed
-    const allowGameStart = await featureFlag.getFeatureFlag("allow_prod_game_start");
-    if (process.env.NODE_ENV === "production" && !allowGameStart) {
-      LogModule.error({
-        key1: "startMatch",
-        key2: "game_start_disabled",
-        text1: "Game start is disabled by feature flag",
-        text2: `User ID: ${userId}, Lobby ID: ${lobbyId}`,
-      });
-      throw Error("Game start is currently disabled");
-    }
+  const allowGameStart = await featureFlag.getFeatureFlag(
+    "allow_prod_game_start",
+  );
+  if (process.env.NODE_ENV === "production" && !allowGameStart) {
+    LogModule.error({
+      key1: "startMatch",
+      key2: "game_start_disabled",
+      text1: "Game start is disabled by feature flag",
+      text2: `User ID: ${userId}, Lobby ID: ${lobbyId}`,
+    });
+    throw Error("Game start is currently disabled");
+  }
 
   try {
     LogModule.log({
@@ -585,7 +597,7 @@ const startMatch = async ({ userData, lobbyId }) => {
     const newGame = await moveLobbyToMongoAndCreateGame(
       lobbyId,
       lobbyData,
-      userId
+      userId,
     );
 
     // call aws to create server
@@ -663,7 +675,7 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
       const currentGame = await getGame(mongoLobby.gameId, userId);
       if (currentGame) {
         const isPlayer = currentGame.players.some(
-          (p) => String(p.userId) === String(userId)
+          (p) => String(p.userId) === String(userId),
         );
 
         if (!isPlayer) {
@@ -695,7 +707,7 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
             teams: currentGame.teams,
             totalPlayers: currentGame.totalPlayers,
             playerTeam: currentGame.players.find(
-              (p) => String(p.userId) === String(userId)
+              (p) => String(p.userId) === String(userId),
             )?.team,
             inLobby: false,
             inGame: true,
@@ -717,7 +729,7 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
       const gameLobbyId = gameData.lobbyId;
       if (gameLobbyId === lobbyId) {
         const isPlayer = gameData.players.some(
-          (p) => String(p.userId) === String(userId)
+          (p) => String(p.userId) === String(userId),
         );
 
         if (!isPlayer) {
@@ -784,7 +796,7 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
         members.map(async (m) => {
           const { characterId, name } = await getCharacterAndName(m.userId);
           return { ...m, characterId, name };
-        })
+        }),
       );
 
       return {
@@ -907,7 +919,7 @@ const leaveLobby = async ({ userData, lobbyId }) => {
 
       // Remove user-lobby mappings for ALL members
       const deletePromises = members.map((member) =>
-        client.del(`${QUEUE_KEY}:${member.userId}`)
+        client.del(`${QUEUE_KEY}:${member.userId}`),
       );
       await Promise.all(deletePromises);
 
@@ -996,7 +1008,7 @@ async function createServer(gameId, activeBuild, lobbyId) {
         gameId: gameId,
       };
     }
-const userData = `#!/bin/bash
+    const userData = `#!/bin/bash
 IP=$(curl -s ifconfig.me)
 
 mkdir -p /home/ubuntu/game-server/logs
@@ -1133,7 +1145,7 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/game-server && nohup ./server.x86_64 --s
       key2: "success",
       text1: userData,
       text2: `Game ID: ${gameId}, Instance IDs: ${launchedInstances.join(
-        ", "
+        ", ",
       )}`,
     });
 
@@ -1173,12 +1185,12 @@ const serverStarted = async (data) => {
       return { status: 400, message: "ipAddress or gameId not received" };
     }
 
-    // Find game by id and update
-    const currentGame = await Game.findByIdAndUpdate(gameId, {
+    // Find game by id and update (wrapper already applies { new: true })
+    const currentGameDoc = await Game.findByIdAndUpdate(gameId, {
       serverIP: ipAddress,
     });
 
-    if (!currentGame) {
+    if (!currentGameDoc) {
       LogModule.error({
         key1: "serverStarted",
         key2: "game_not_found",
@@ -1186,6 +1198,27 @@ const serverStarted = async (data) => {
         text2: `Game ID: ${gameId}`,
       });
       return { status: 404, message: "Game not found" };
+    }
+
+    // Convert to plain object so we can add extra fields (attackType, characterName, userName)
+    // Mongoose documents only serialize schema-defined fields — .toObject() gives us a raw JS object
+    const currentGame = currentGameDoc.toObject();
+
+    // Populate each player's character details and display name
+    for (const player of currentGame.players) {
+      if (player.characterId) {
+        const character = await Character.findById(player.characterId);
+        if (character) {
+          player.attackType = character.attackType;       // "Melee" / "Throw" / "Ranged"
+          player.characterName = character.name;
+        }
+      }
+      if (player.userId && !player.isBot) {
+        const profile = await UserProfile.findOne({ userId: player.userId });
+        if (profile) {
+          player.userName = profile.name;                 // "Player_4821"
+        }
+      }
     }
 
     // Store game in Redis (30 min TTL safety net)
@@ -1202,11 +1235,11 @@ const serverStarted = async (data) => {
         lobbyId: currentGame.createdByLobby,
         serverIP: ipAddress,
       }),
-      { EX: 30 * 60 }
+      { EX: 30 * 60 },
     );
 
     const activeGameStr = await client.get(
-      `currentGame:${currentGame._id.toString()}`
+      `currentGame:${currentGame._id.toString()}`,
     );
     const activeGame = JSON.parse(activeGameStr);
 
@@ -1217,14 +1250,14 @@ const serverStarted = async (data) => {
     // Delete all player queue entries related to this above lobby
     await Promise.all(
       activeGame.players.map((player) =>
-        client.del(`${QUEUE_KEY}:${player.userId}`)
-      )
+        client.del(`${QUEUE_KEY}:${player.userId}`),
+      ),
     );
 
     // Update lobby in database
     const updatedLobby = await Lobby.findOneAndUpdate(
       { gameId: currentGame._id },
-      { inGame: true }
+      { inGame: true },
     );
 
     LogModule.log({
@@ -1291,7 +1324,7 @@ export const mockLobbyData = async (data) => {
     if (existing) {
       const parsed = JSON.parse(existing);
       const alreadyExists = parsed.players.some(
-        (p) => p.clientId === Number(clientIndex)
+        (p) => p.clientId === Number(clientIndex),
       );
 
       if (!alreadyExists) {
@@ -1579,7 +1612,9 @@ const getActiveGame = async ({ userData }) => {
     if (activeGameCheck.inGame) {
       const gameRaw = await client.get(`currentGame:${activeGameCheck.gameId}`);
       const gameData = gameRaw ? JSON.parse(gameRaw) : null;
-      const player = gameData?.players?.find((p) => String(p.userId) === String(userId));
+      const player = gameData?.players?.find(
+        (p) => String(p.userId) === String(userId),
+      );
 
       return {
         status: 200,
@@ -1606,7 +1641,9 @@ const getActiveGame = async ({ userData }) => {
         const mongoLobby = await Lobby.findOne({ lobbyId, inGame: true });
         if (mongoLobby) {
           const game = await Game.findById(mongoLobby.gameId);
-          const player = game?.players?.find((p) => String(p.userId) === String(userId));
+          const player = game?.players?.find(
+            (p) => String(p.userId) === String(userId),
+          );
           return {
             status: 200,
             data: {
