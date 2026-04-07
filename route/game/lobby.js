@@ -34,6 +34,11 @@ export default async function lobbyRoutes(fastify) {
     { preHandler: requireUser },
     wrapper(Lobby.getActiveGame)
   );
+  fastify.post(
+    "/selectPosition",
+    { preHandler: requireUser },
+    wrapper(Lobby.selectPosition)
+  );
 
   // mockLobbyData - server-to-server
   fastify.post("/mockLobbyData", { preHandler: requireServer }, wrapper(Lobby.mockLobbyData));

@@ -409,6 +409,7 @@ async function moveLobbyToMongoAndCreateGame(lobbyId, lobbyData) {
           characterId,
           clientId: i + 1,
           team: "A",
+          ...(m.preferredPosition ? { preferredPosition: m.preferredPosition } : {}),
         };
       }),
     );
@@ -829,6 +830,82 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
       key2: "failed",
       text1: "Getting lobby status failed",
       text2: `User ID: ${userId}, Lobby ID: ${lobbyId}`,
+      error: err.message,
+      stack: err.stack,
+    });
+    return { status: 500, message: "Internal server error" };
+  }
+};
+
+/* ----------------------------- SELECT POSITION ----------------------------- */
+const selectPosition = async ({ userData, lobbyId, position }) => {
+  const userId = userData?.userId;
+  if (!userId || !lobbyId) {
+    return { status: 400, message: "User ID and Lobby ID required" };
+  }
+
+  // Allow null/0 to clear, otherwise must be 1-16
+  const clearing = position === null || position === 0;
+  if (!clearing && (!Number.isInteger(position) || position < 1 || position > 16)) {
+    return { status: 400, message: "Invalid position. Must be 1-16" };
+  }
+
+  try {
+    const lobbyKey = `lobby:${lobbyId}`;
+    const lobbyData = await client.hGetAll(lobbyKey);
+
+    if (!lobbyData || !lobbyData.lobbyId) {
+      return { status: 404, message: "Lobby not found" };
+    }
+
+    if (lobbyData.inGame === "true") {
+      return { status: 400, message: "Cannot change position after game has started" };
+    }
+
+    const members = JSON.parse(lobbyData.members || "[]");
+    const memberIndex = members.findIndex((m) => String(m.userId) === String(userId));
+
+    if (memberIndex === -1) {
+      return { status: 403, message: "You are not in this lobby" };
+    }
+
+    // Check if position is already taken by another member
+    if (!clearing) {
+      const conflict = members.find(
+        (m) => m.preferredPosition === position && String(m.userId) !== String(userId)
+      );
+      if (conflict) {
+        return { status: 409, message: "Position already taken" };
+      }
+    }
+
+    // Update the member's preferred position
+    members[memberIndex].preferredPosition = clearing ? null : position;
+
+    // Save back to Redis
+    await client.hSet(lobbyKey, "members", JSON.stringify(members));
+
+    LogModule.log({
+      key1: "selectPosition",
+      key2: clearing ? "cleared" : "selected",
+      text1: `Player ${clearing ? "cleared" : "selected"} position`,
+      text2: `User: ${userId}, Lobby: ${lobbyId}, Position: ${position}`,
+    });
+
+    return {
+      status: 200,
+      message: clearing ? "Position cleared" : `Position ${position} selected`,
+      data: {
+        lobbyId,
+        members,
+      },
+    };
+  } catch (err) {
+    LogModule.error({
+      key1: "selectPosition",
+      key2: "failed",
+      text1: "Selecting position failed",
+      text2: `User: ${userId}, Lobby: ${lobbyId}`,
       error: err.message,
       stack: err.stack,
     });
@@ -1699,6 +1776,7 @@ export default {
   getLobbyStatus,
   startMatch,
   leaveLobby,
+  selectPosition,
   serverStarted,
   mockLobbyData,
   getServerLobbyStatus,

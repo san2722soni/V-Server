@@ -26,13 +26,38 @@ function buildFilledTree(clientIds) {
 
 export function buildTeamTree(teamPlayers) {
     const filled = new Array(flatTree.length).fill(-1);
+    const usedSlots = new Set(); // track which teamLocalId slots are claimed
 
-    teamPlayers.forEach((player, index) => {
-        const teamLocalId = index + 1;       // 1st, 2nd, 3rd player in team
-        const pos = flatTree.indexOf(teamLocalId); // where this slot should go in tree
+    // First pass: place players with a preferredPosition
+    teamPlayers.forEach((player) => {
+        const pref = player.preferredPosition;
+        if (pref && pref >= 1 && pref <= 16) {
+            const pos = flatTree.indexOf(pref);
+            if (pos !== -1 && filled[pos] === -1) {
+                filled[pos] = player.clientId;
+                usedSlots.add(pref);
+            }
+        }
+    });
 
-        if (pos !== -1) {
-            filled[pos] = player.clientId;  // store player.clietnId
+    // Second pass: place remaining players (no preference or conflict) into unclaimed slots
+    let nextSlot = 1;
+    teamPlayers.forEach((player) => {
+        const pref = player.preferredPosition;
+        if (pref && usedSlots.has(pref)) {
+            // Already placed in first pass — check it's actually this player
+            const pos = flatTree.indexOf(pref);
+            if (pos !== -1 && filled[pos] === player.clientId) return;
+        }
+        // Find next available slot
+        while (usedSlots.has(nextSlot) && nextSlot <= 16) nextSlot++;
+        if (nextSlot <= 16) {
+            const pos = flatTree.indexOf(nextSlot);
+            if (pos !== -1) {
+                filled[pos] = player.clientId;
+                usedSlots.add(nextSlot);
+            }
+            nextSlot++;
         }
     });
 
