@@ -207,6 +207,7 @@ const createLobby = async ({ userData, lobbyName }) => {
           userId,
           isLeader: true,
           joinedAt: new Date().toISOString(),
+          preferredPosition: 1,
         },
       ]),
     };
@@ -323,10 +324,15 @@ const joinLobby = async ({ userData, lobbyId }) => {
     }
 
     // Add the new member to the lobby (no limit check)
+    const takenPositions = new Set(members.map((m) => m.preferredPosition).filter(Boolean));
+    let assignedPosition = 1;
+    while (takenPositions.has(assignedPosition) && assignedPosition <= 16) assignedPosition++;
+
     members.push({
       userId,
       isLeader: false,
       joinedAt: new Date().toISOString(),
+      preferredPosition: assignedPosition,
     });
 
     await client.hSet(lobbyKey, "members", JSON.stringify(members));
@@ -844,9 +850,7 @@ const selectPosition = async ({ userData, lobbyId, position }) => {
     return { status: 400, message: "User ID and Lobby ID required" };
   }
 
-  // Allow null/0 to clear, otherwise must be 1-16
-  const clearing = position === null || position === 0;
-  if (!clearing && (!Number.isInteger(position) || position < 1 || position > 16)) {
+  if (!Number.isInteger(position) || position < 1 || position > 16) {
     return { status: 400, message: "Invalid position. Must be 1-16" };
   }
 
@@ -870,31 +874,29 @@ const selectPosition = async ({ userData, lobbyId, position }) => {
     }
 
     // Check if position is already taken by another member
-    if (!clearing) {
-      const conflict = members.find(
-        (m) => m.preferredPosition === position && String(m.userId) !== String(userId)
-      );
-      if (conflict) {
-        return { status: 409, message: "Position already taken" };
-      }
+    const conflict = members.find(
+      (m) => m.preferredPosition === position && String(m.userId) !== String(userId)
+    );
+    if (conflict) {
+      return { status: 409, message: "Position already taken" };
     }
 
     // Update the member's preferred position
-    members[memberIndex].preferredPosition = clearing ? null : position;
+    members[memberIndex].preferredPosition = position;
 
     // Save back to Redis
     await client.hSet(lobbyKey, "members", JSON.stringify(members));
 
     LogModule.log({
       key1: "selectPosition",
-      key2: clearing ? "cleared" : "selected",
-      text1: `Player ${clearing ? "cleared" : "selected"} position`,
+      key2: "selected",
+      text1: "Player selected position",
       text2: `User: ${userId}, Lobby: ${lobbyId}, Position: ${position}`,
     });
 
     return {
       status: 200,
-      message: clearing ? "Position cleared" : `Position ${position} selected`,
+      message: `Position ${position} selected`,
       data: {
         lobbyId,
         members,
