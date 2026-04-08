@@ -416,6 +416,7 @@ async function moveLobbyToMongoAndCreateGame(lobbyId, lobbyData) {
           clientId: i + 1,
           team: "A",
           ...(m.preferredPosition ? { preferredPosition: m.preferredPosition } : {}),
+          ...(m.preferredTeam ? { preferredTeam: m.preferredTeam } : {}),
         };
       }),
     );
@@ -844,7 +845,7 @@ const getLobbyStatus = async ({ userData, lobbyId }) => {
 };
 
 /* ----------------------------- SELECT POSITION ----------------------------- */
-const selectPosition = async ({ userData, lobbyId, position }) => {
+const selectPosition = async ({ userData, lobbyId, position, preferredTeam }) => {
   const userId = userData?.userId;
   if (!userId || !lobbyId) {
     return { status: 400, message: "User ID and Lobby ID required" };
@@ -852,6 +853,10 @@ const selectPosition = async ({ userData, lobbyId, position }) => {
 
   if (!Number.isInteger(position) || position < 1 || position > 16) {
     return { status: 400, message: "Invalid position. Must be 1-16" };
+  }
+
+  if (preferredTeam !== undefined && preferredTeam !== "A" && preferredTeam !== "B") {
+    return { status: 400, message: "Invalid team. Must be A or B" };
   }
 
   try {
@@ -881,8 +886,11 @@ const selectPosition = async ({ userData, lobbyId, position }) => {
       return { status: 409, message: "Position already taken" };
     }
 
-    // Update the member's preferred position
+    // Update the member's preferred position and team
     members[memberIndex].preferredPosition = position;
+    if (preferredTeam !== undefined) {
+      members[memberIndex].preferredTeam = preferredTeam;
+    }
 
     // Save back to Redis
     await client.hSet(lobbyKey, "members", JSON.stringify(members));
@@ -891,7 +899,7 @@ const selectPosition = async ({ userData, lobbyId, position }) => {
       key1: "selectPosition",
       key2: "selected",
       text1: "Player selected position",
-      text2: `User: ${userId}, Lobby: ${lobbyId}, Position: ${position}`,
+      text2: `User: ${userId}, Lobby: ${lobbyId}, Position: ${position}, Team: ${preferredTeam || "none"}`,
     });
 
     return {
@@ -1496,19 +1504,36 @@ function dividePlayersIntoTeams(players) {
   // Separate real players and bots, shuffle each group independently
   const realPlayers = players.filter((p) => !p.isBot);
   const botPlayers = players.filter((p) => p.isBot);
-  shuffle(realPlayers);
-  shuffle(botPlayers);
 
   const teamA = [];
   const teamB = [];
 
-  // Distribute real players equally first (alternating A/B)
-  const assignToTeam = (player) => {
-    const teamPlayer = {
-      userId: player.userId,
-      clientId: player.clientId,
-      characterId: player.characterId,
-    };
+  const makeTeamPlayer = (player) => ({
+    userId: player.userId,
+    clientId: player.clientId,
+    characterId: player.characterId,
+    ...(player.preferredPosition ? { preferredPosition: player.preferredPosition } : {}),
+  });
+
+  // First: place real players who chose a team
+  const preferredA = realPlayers.filter((p) => p.preferredTeam === "A");
+  const preferredB = realPlayers.filter((p) => p.preferredTeam === "B");
+  const noPreference = realPlayers.filter((p) => !p.preferredTeam);
+
+  preferredA.forEach((player) => {
+    teamA.push(makeTeamPlayer(player));
+    player.team = "A";
+  });
+
+  preferredB.forEach((player) => {
+    teamB.push(makeTeamPlayer(player));
+    player.team = "B";
+  });
+
+  // Second: shuffle and distribute remaining real players evenly
+  shuffle(noPreference);
+  noPreference.forEach((player) => {
+    const teamPlayer = makeTeamPlayer(player);
     if (teamA.length <= teamB.length) {
       teamA.push(teamPlayer);
       player.team = "A";
@@ -1516,11 +1541,20 @@ function dividePlayersIntoTeams(players) {
       teamB.push(teamPlayer);
       player.team = "B";
     }
-  };
+  });
 
-  realPlayers.forEach(assignToTeam);
-  // Then distribute bots equally
-  botPlayers.forEach(assignToTeam);
+  // Third: shuffle and distribute bots evenly
+  shuffle(botPlayers);
+  botPlayers.forEach((player) => {
+    const teamPlayer = makeTeamPlayer(player);
+    if (teamA.length <= teamB.length) {
+      teamA.push(teamPlayer);
+      player.team = "A";
+    } else {
+      teamB.push(teamPlayer);
+      player.team = "B";
+    }
+  });
 
   const shuffledPlayers = [...realPlayers, ...botPlayers];
 
